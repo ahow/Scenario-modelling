@@ -1,6 +1,5 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
 import { type Signal, type SignalId, type ScenarioId, SIGNAL_MAP } from "../lib/config";
 import { type SignalState, createEqualDistribution } from "../lib/engine";
 
@@ -15,7 +14,6 @@ export const DecisionCard = memo(function DecisionCard({
   state,
   onStateChange,
 }: DecisionCardProps) {
-  const [showContext, setShowContext] = useState(false);
   const isSet = state.mode === 'distribution';
 
   const handleToggleActive = useCallback(() => {
@@ -95,14 +93,6 @@ export const DecisionCard = memo(function DecisionCard({
         </div>
         <div className="flex items-center gap-1 flex-shrink-0 ml-2">
           <button
-            className="text-muted-foreground/50 hover:text-muted-foreground p-0.5 transition-colors"
-            onClick={() => setShowContext((v) => !v)}
-            data-testid={`context-toggle-${signal.id}`}
-            aria-label="Show context"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-          </button>
-          <button
             className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
               isSet
                 ? "bg-[hsl(var(--primary))] text-white"
@@ -116,14 +106,12 @@ export const DecisionCard = memo(function DecisionCard({
         </div>
       </div>
 
-      {/* Context text */}
-      {showContext && (
-        <div className="px-3 pb-2">
-          <p className="text-[12px] text-muted-foreground leading-relaxed">
-            {signal.context}
-          </p>
-        </div>
-      )}
+      {/* Context text — always visible */}
+      <div className="px-3 pb-2">
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
+          {signal.context}
+        </p>
+      </div>
 
       {/* Sliders */}
       {isSet && state.mode === 'distribution' && (
@@ -173,9 +161,11 @@ export const DecisionCard = memo(function DecisionCard({
                     {pct}%
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground/60 ml-[98px] leading-tight mt-0.5 hidden group-hover:block">
-                  {option.label}
-                </p>
+                {option.label !== option.shortLabel && (
+                  <p className="text-[11px] text-muted-foreground/60 ml-[98px] leading-tight mt-0.5">
+                    {option.label}
+                  </p>
+                )}
               </div>
             );
           })}

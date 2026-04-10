@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, RotateCcw, Link2, Check, Info } from "lucide-react";
+import { Moon, Sun, RotateCcw, Link2, Check } from "lucide-react";
 import { MarketStrip } from "./components/MarketStrip";
 import { ScenarioBar } from "./components/ScenarioBar";
 import { DecisionCard } from "./components/DecisionCard";
@@ -29,7 +29,6 @@ export default function App() {
   const [states, setStates] = useState<AllSignalStates>(() => getDefaultStates());
   const [copied, setCopied] = useState(false);
   const [drawerScenario, setDrawerScenario] = useState<ScenarioId | null>(null);
-  const [showMethodology, setShowMethodology] = useState(false);
 
   const baseProbs = useMemo(() => getBaseProbs(), []);
   const baselineProbs = useMemo(
@@ -170,32 +169,22 @@ export default function App() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Key Decisions — Probability Assessment
           </h2>
-          <button
-            className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            onClick={() => setShowMethodology((v) => !v)}
-            data-testid="button-methodology"
-          >
-            <Info className="w-3 h-3" />
-            {showMethodology ? "Hide" : "How it works"}
-          </button>
         </div>
 
-        {showMethodology && (
-          <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
-            <p>
-              For each decision point, toggle from "Unknown" to "Active" to engage the probability sliders.
-              Assign your probability estimate to each possible option — the sliders automatically sum to 100%.
-            </p>
-            <p>
-              The engine computes expected scenario probabilities by weighting each option's impact by
-              your assigned probability, then propagates through to probability-weighted market outcomes.
-              The narrative synthesises the most likely path and its market consequences.
-            </p>
-            <p className="text-muted-foreground/70">
-              Editorial estimates — not investment advice. Base probabilities and weights reflect analyst judgement as of April 2026.
-            </p>
-          </div>
-        )}
+        <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
+          <p>
+            For each decision point, toggle from "Unknown" to "Active" to engage the probability sliders.
+            Assign your probability estimate to each possible option — the sliders automatically sum to 100%.
+          </p>
+          <p>
+            The engine computes expected scenario probabilities by weighting each option's impact by
+            your assigned probability, then propagates through to probability-weighted market outcomes.
+            The narrative synthesises the most likely path and its market consequences.
+          </p>
+          <p className="text-muted-foreground/70">
+            Editorial estimates — not investment advice. Base probabilities and weights reflect analyst judgement as of April 2026.
+          </p>
+        </div>
 
         <div className="space-y-3">
           {actorGroups.map((group) => (
