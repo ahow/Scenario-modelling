@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, RotateCcw, Link2, Check, Info } from "lucide-react";
 import { MarketStrip } from "./components/MarketStrip";
 import { ScenarioBar } from "./components/ScenarioBar";
 import { DecisionCard } from "./components/DecisionCard";
+import { NarrativePanel } from "./components/NarrativePanel";
 import { ScenarioDrawer } from "./components/ScenarioDrawer";
 import {
   type SignalId,
@@ -11,92 +12,71 @@ import {
   SIGNALS,
 } from "./lib/config";
 import {
-  computeProbs,
+  type AllSignalStates,
+  type SignalState,
+  computeProbsFromDistributions,
   getBaseProbs,
-  countDefiniteSignals,
+  getDefaultStates,
+  countSetSignals,
   computeWeightedMarket,
+  generateNarrative,
 } from "./lib/engine";
-
-function getDefaultSelections(): Record<SignalId, string> {
-  return Object.fromEntries(
-    SIGNALS.map((s) => [s.id, s.defaultValue])
-  ) as Record<SignalId, string>;
-}
-
-function parseUrlState(): Record<SignalId, string> | null {
-  const params = new URLSearchParams(window.location.hash.split("?")[1] || "");
-  if (params.toString() === "") return null;
-  const selections = getDefaultSelections();
-  for (const [key, value] of params.entries()) {
-    if (key in selections) {
-      (selections as any)[key] = value;
-    }
-  }
-  return selections;
-}
-
-function serializeState(selections: Record<SignalId, string>): string {
-  const defaults = getDefaultSelections();
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(selections)) {
-    if (value !== defaults[key as SignalId]) {
-      params.set(key, value);
-    }
-  }
-  const qs = params.toString();
-  return qs ? `${window.location.origin}${window.location.pathname}#/?${qs}` : window.location.href.split("?")[0];
-}
 
 export default function App() {
   const [dark, setDark] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
-  const [selections, setSelections] = useState<Record<SignalId, string>>(
-    () => parseUrlState() || getDefaultSelections()
-  );
+  const [states, setStates] = useState<AllSignalStates>(() => getDefaultStates());
   const [copied, setCopied] = useState(false);
   const [drawerScenario, setDrawerScenario] = useState<ScenarioId | null>(null);
   const [showMethodology, setShowMethodology] = useState(false);
 
   const baseProbs = useMemo(() => getBaseProbs(), []);
   const baselineProbs = useMemo(
-    () => computeProbs(getDefaultSelections(), baseProbs),
+    () => computeProbsFromDistributions(getDefaultStates(), baseProbs),
     [baseProbs]
   );
   const currentProbs = useMemo(
-    () => computeProbs(selections, baseProbs),
-    [selections, baseProbs]
+    () => computeProbsFromDistributions(states, baseProbs),
+    [states, baseProbs]
   );
   const weightedMarket = useMemo(
     () => computeWeightedMarket(currentProbs),
     [currentProbs]
   );
-  const certainty = countDefiniteSignals(selections);
+  const setCount = useMemo(() => countSetSignals(states), [states]);
+
+  const narrative = useMemo(
+    () => generateNarrative(currentProbs, weightedMarket, states),
+    [currentProbs, weightedMarket, states]
+  );
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  const handleSignalChange = useCallback(
-    (signalId: SignalId, value: string) => {
-      setSelections((prev) => ({ ...prev, [signalId]: value }));
+  const handleStateChange = useCallback(
+    (signalId: SignalId, state: SignalState) => {
+      setStates((prev) => ({ ...prev, [signalId]: state }));
     },
     []
   );
 
   const handleReset = useCallback(() => {
-    setSelections(getDefaultSelections());
+    setStates(getDefaultStates());
   }, []);
 
   const handleCopyLink = useCallback(() => {
-    const url = serializeState(selections);
+    // Serialize state to URL for sharing
+    const encoded = btoa(JSON.stringify(states));
+    const url = `${window.location.origin}${window.location.pathname}#/?s=${encodeURIComponent(encoded)}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [selections]);
+  }, [states]);
 
-  // Group signals by actor for compact display
+  // Actor groups for rendering
   const actorGroups = useMemo(() => {
     const groups: Array<{ actor: string; actorColor: string; signals: typeof SIGNALS }> = [];
     const seen = new Set<string>();
@@ -118,7 +98,6 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-          {/* Title row */}
           <div className="h-11 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 flex-shrink-0" aria-label="Logo">
@@ -126,11 +105,9 @@ export default function App() {
                 <circle cx="12" cy="12" r="4" stroke="hsl(213, 60%, 42%)" strokeWidth="2" />
                 <path d="M12 1v22M1 12h22" stroke="currentColor" strokeWidth="0.8" opacity="0.25" />
               </svg>
-              <div>
-                <h1 className="text-sm font-semibold tracking-tight leading-none">
-                  Iran Conflict Scenario Engine
-                </h1>
-              </div>
+              <h1 className="text-sm font-semibold tracking-tight">
+                Iran Conflict Scenario Engine
+              </h1>
             </div>
             <div className="flex items-center gap-1">
               {/* Certainty indicator */}
@@ -140,13 +117,13 @@ export default function App() {
                     <div
                       key={i}
                       className={`w-1.5 h-3 rounded-sm transition-colors ${
-                        i < certainty ? "bg-[hsl(var(--primary))]" : "bg-muted-foreground/15"
+                        i < setCount ? "bg-[hsl(var(--primary))]" : "bg-muted-foreground/15"
                       }`}
                     />
                   ))}
                 </div>
                 <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {certainty}/{SIGNALS.length}
+                  {setCount}/{SIGNALS.length}
                 </span>
               </div>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={handleCopyLink} data-testid="button-copy-link">
@@ -162,13 +139,11 @@ export default function App() {
               </Button>
             </div>
           </div>
-
-          {/* Market impact strip — always visible */}
           <MarketStrip weightedMarket={weightedMarket} />
         </div>
       </header>
 
-      {/* Scenario probability bar */}
+      {/* Scenario bar */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-4 pb-2">
         <ScenarioBar
           currentProbs={currentProbs}
@@ -177,11 +152,23 @@ export default function App() {
         />
       </div>
 
-      {/* Decision cards */}
+      {/* Main content: narrative + decisions */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-8">
-        <div className="flex items-center justify-between mb-3 mt-2">
+        {/* Narrative panel */}
+        <div className="mb-4">
+          <NarrativePanel
+            scenarioNarrative={narrative.scenarioNarrative}
+            marketNarrative={narrative.marketNarrative}
+            topScenarios={narrative.topScenarios}
+            weightedMarket={weightedMarket}
+            setCount={setCount}
+          />
+        </div>
+
+        {/* Decisions */}
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Key Decisions
+            Key Decisions — Probability Assessment
           </h2>
           <button
             className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
@@ -196,13 +183,13 @@ export default function App() {
         {showMethodology && (
           <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
             <p>
-              Each decision adjusts the probability of 8 conflict scenarios using an additive Bayesian weight matrix.
-              The market impact strip shows probability-weighted expected values across all scenarios.
+              For each decision point, toggle from "Unknown" to "Active" to engage the probability sliders.
+              Assign your probability estimate to each possible option — the sliders automatically sum to 100%.
             </p>
             <p>
-              Select the option you believe matches current intelligence for each decision point.
-              "Unknown" leaves the prior probabilities unchanged. The more decisions you set, the more
-              the model diverges from the baseline.
+              The engine computes expected scenario probabilities by weighting each option's impact by
+              your assigned probability, then propagates through to probability-weighted market outcomes.
+              The narrative synthesises the most likely path and its market consequences.
             </p>
             <p className="text-muted-foreground/70">
               Editorial estimates — not investment advice. Base probabilities and weights reflect analyst judgement as of April 2026.
@@ -217,11 +204,8 @@ export default function App() {
                 <DecisionCard
                   key={signal.id}
                   signal={signal}
-                  selectedValue={selections[signal.id]}
-                  onSelect={(value) => handleSignalChange(signal.id, value)}
-                  currentProbs={currentProbs}
-                  baseProbs={baseProbs}
-                  allSelections={selections}
+                  state={states[signal.id]}
+                  onStateChange={handleStateChange}
                 />
               ))}
             </div>
@@ -229,7 +213,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* Scenario detail drawer */}
+      {/* Scenario drawer */}
       {drawerScenario && (
         <ScenarioDrawer
           scenarioId={drawerScenario}

@@ -1,88 +1,71 @@
-import { memo, useMemo } from "react";
+import { memo, useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import {
-  type Signal,
-  type SignalId,
-  type ScenarioId,
-  SCENARIOS,
-  SCENARIO_MAP,
-  ASSETS,
-  WEIGHTS,
-} from "../lib/config";
-import { computeProbs, computeWeightedMarket } from "../lib/engine";
+import { ChevronDown, ChevronUp, HelpCircle } from "lucide-react";
+import { type Signal, type SignalId, type ScenarioId, SIGNAL_MAP } from "../lib/config";
+import { type SignalState, createEqualDistribution } from "../lib/engine";
 
 interface DecisionCardProps {
   signal: Signal;
-  selectedValue: string;
-  onSelect: (value: string) => void;
-  currentProbs: Record<ScenarioId, number>;
-  baseProbs: Record<ScenarioId, number>;
-  allSelections: Record<SignalId, string>;
+  state: SignalState;
+  onStateChange: (signalId: SignalId, state: SignalState) => void;
 }
 
 export const DecisionCard = memo(function DecisionCard({
   signal,
-  selectedValue,
-  onSelect,
-  currentProbs,
-  baseProbs,
-  allSelections,
+  state,
+  onStateChange,
 }: DecisionCardProps) {
-  const isSet = selectedValue !== "unknown";
+  const [showContext, setShowContext] = useState(false);
+  const isSet = state.mode === 'distribution';
 
-  // Compute the impact preview: what happens if you pick each non-unknown option vs. unknown
-  const impactPreview = useMemo(() => {
-    if (!isSet) return null;
+  const handleToggleActive = useCallback(() => {
+    if (isSet) {
+      onStateChange(signal.id, { mode: 'unknown' });
+    } else {
+      onStateChange(signal.id, createEqualDistribution(signal.id));
+    }
+  }, [isSet, signal.id, onStateChange]);
 
-    // Current state (with this signal set)
-    const withSignal = computeProbs(allSelections, baseProbs);
-    // State without this signal (set to unknown)
-    const withoutSignal = computeProbs({ ...allSelections, [signal.id]: "unknown" }, baseProbs);
+  const handleSliderChange = useCallback(
+    (optionValue: string, newPct: number) => {
+      if (state.mode !== 'distribution') return;
 
-    const marketWith = computeWeightedMarket(withSignal);
-    const marketWithout = computeWeightedMarket(withoutSignal);
+      const options = signal.options;
+      const currentWeights = { ...state.weights };
+      const oldPct = currentWeights[optionValue] * 100;
+      const delta = newPct - oldPct;
 
-    // Find the top 3 most affected scenarios
-    const scenarioDiffs = SCENARIOS.map((s) => ({
-      id: s.id,
-      name: s.name,
-      color: s.color,
-      delta: (withSignal[s.id] - withoutSignal[s.id]) * 100,
-      prob: withSignal[s.id] * 100,
-    }))
-      .filter((d) => Math.abs(d.delta) > 0.3)
-      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-      .slice(0, 3);
+      // Distribute the delta proportionally among other options
+      const others = options.filter((o) => o.value !== optionValue);
+      const othersTotal = others.reduce((s, o) => s + (currentWeights[o.value] ?? 0), 0);
 
-    // Key market shifts
-    const marketDiffs = ASSETS.map((a) => {
-      const mid = marketWith[a.id].mid;
-      const midBase = marketWithout[a.id].mid;
-      let delta: number;
-      let formatted: string;
+      const newWeights: Record<string, number> = {};
+      newWeights[optionValue] = Math.max(0, Math.min(100, newPct)) / 100;
 
-      if (a.id === "sp500") {
-        delta = mid - midBase;
-        formatted = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}pp`;
-      } else if (a.id === "treasury") {
-        delta = (mid - midBase) * 100;
-        formatted = `${delta > 0 ? "+" : ""}${delta.toFixed(0)}bp`;
-      } else if (a.id === "oil" || a.id === "gold") {
-        delta = mid - midBase;
-        formatted = `${delta > 0 ? "+" : ""}$${Math.abs(delta).toFixed(0)}`;
+      if (othersTotal > 0.001) {
+        const remaining = 1 - newWeights[optionValue];
+        for (const other of others) {
+          const share = (currentWeights[other.value] ?? 0) / othersTotal;
+          newWeights[other.value] = Math.max(0, remaining * share);
+        }
       } else {
-        delta = mid - midBase;
-        formatted = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`;
+        // All others are zero; distribute equally
+        const remaining = 1 - newWeights[optionValue];
+        for (const other of others) {
+          newWeights[other.value] = remaining / others.length;
+        }
       }
 
-      return { id: a.id, name: a.name, delta, formatted, absDelta: Math.abs(delta) };
-    })
-      .filter((d) => d.absDelta > 0.01)
-      .sort((a, b) => b.absDelta - a.absDelta)
-      .slice(0, 3);
+      // Normalize to exactly 1.0
+      const total = Object.values(newWeights).reduce((a, b) => a + b, 0);
+      for (const key of Object.keys(newWeights)) {
+        newWeights[key] = newWeights[key] / total;
+      }
 
-    return { scenarioDiffs, marketDiffs };
-  }, [isSet, signal.id, allSelections, baseProbs]);
+      onStateChange(signal.id, { mode: 'distribution', weights: newWeights });
+    },
+    [state, signal, onStateChange]
+  );
 
   return (
     <div
@@ -93,102 +76,109 @@ export const DecisionCard = memo(function DecisionCard({
       }`}
       data-testid={`decision-${signal.id}`}
     >
-      {/* Header row */}
-      <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
-        <Badge
-          variant="outline"
-          className="text-[10px] font-medium px-1.5 py-0 h-[18px] border-0 flex-shrink-0"
-          style={{
-            backgroundColor: `${signal.actorColor}14`,
-            color: signal.actorColor,
-          }}
-        >
-          {signal.actor}
-        </Badge>
-        <span className="text-[13px] font-medium">{signal.question}</span>
-      </div>
-
-      {/* Pill toggles */}
-      <div className="px-3 pb-2">
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={signal.question}>
-          {signal.options.map((option) => {
-            const isSelected = selectedValue === option.value;
-            const isUnknown = option.value === "unknown";
-
-            return (
-              <button
-                key={option.value}
-                role="radio"
-                aria-checked={isSelected}
-                className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all duration-150 border cursor-pointer ${
-                  isSelected
-                    ? isUnknown
-                      ? "bg-muted border-muted-foreground/20 text-muted-foreground"
-                      : "bg-[hsl(var(--primary))] text-white border-[hsl(var(--primary))] shadow-sm"
-                    : "bg-transparent border-border/60 text-foreground/80 hover:bg-accent hover:border-border"
-                }`}
-                onClick={() => onSelect(option.value)}
-                data-testid={`pill-${signal.id}-${option.value}`}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+      {/* Header */}
+      <div className="flex items-start justify-between px-3 pt-2.5 pb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Badge
+              variant="outline"
+              className="text-[10px] font-medium px-1.5 py-0 h-[18px] border-0 flex-shrink-0"
+              style={{
+                backgroundColor: `${signal.actorColor}14`,
+                color: signal.actorColor,
+              }}
+            >
+              {signal.actor}
+            </Badge>
+            <span className="text-[13px] font-semibold">{signal.question}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          <button
+            className="text-muted-foreground/50 hover:text-muted-foreground p-0.5 transition-colors"
+            onClick={() => setShowContext((v) => !v)}
+            data-testid={`context-toggle-${signal.id}`}
+            aria-label="Show context"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+          </button>
+          <button
+            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+              isSet
+                ? "bg-[hsl(var(--primary))] text-white"
+                : "bg-muted text-muted-foreground hover:bg-accent"
+            }`}
+            onClick={handleToggleActive}
+            data-testid={`toggle-${signal.id}`}
+          >
+            {isSet ? "Active" : "Unknown"}
+          </button>
         </div>
       </div>
 
-      {/* Impact preview — only shown when a non-unknown option is selected */}
-      {impactPreview && (
-        <div className="px-3 pb-2.5 pt-0.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-            {/* Scenario shifts */}
-            {impactPreview.scenarioDiffs.map((sd) => (
-              <span key={sd.id} className="flex items-center gap-1">
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: sd.color }}
-                />
-                <span className="text-muted-foreground truncate max-w-[120px]">{sd.name}</span>
-                <span
-                  className={`font-medium tabular-nums ${
-                    sd.delta > 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-emerald-600 dark:text-emerald-400"
-                  }`}
-                >
-                  {sd.delta > 0 ? "+" : ""}
-                  {sd.delta.toFixed(1)}pp
-                </span>
-              </span>
-            ))}
+      {/* Context text */}
+      {showContext && (
+        <div className="px-3 pb-2">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
+            {signal.context}
+          </p>
+        </div>
+      )}
 
-            {/* Separator */}
-            {impactPreview.marketDiffs.length > 0 && impactPreview.scenarioDiffs.length > 0 && (
-              <span className="text-border">|</span>
-            )}
+      {/* Sliders */}
+      {isSet && state.mode === 'distribution' && (
+        <div className="px-3 pb-3 space-y-2">
+          {signal.options.map((option) => {
+            const pct = Math.round((state.weights[option.value] ?? 0) * 100);
+            const isMax = pct === Math.max(...Object.values(state.weights).map(w => Math.round(w * 100)));
 
-            {/* Market shifts */}
-            {impactPreview.marketDiffs.map((md) => (
-              <span key={md.id} className="flex items-center gap-1">
-                <span className="text-muted-foreground">{md.name}</span>
-                <span
-                  className={`font-medium tabular-nums ${
-                    md.id === "oil"
-                      ? md.delta > 0
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-400"
-                      : md.id === "sp500"
-                      ? md.delta > 0
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {md.formatted}
-                </span>
-              </span>
-            ))}
-          </div>
+            return (
+              <div key={option.value} className="group" data-testid={`slider-row-${signal.id}-${option.value}`}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[12px] w-[90px] flex-shrink-0 truncate ${
+                      isMax ? "font-semibold text-foreground" : "text-muted-foreground"
+                    }`}
+                    title={option.label}
+                  >
+                    {option.shortLabel}
+                  </span>
+                  <div className="flex-1 relative h-6 flex items-center">
+                    <div className="absolute inset-x-0 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-150"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: isMax ? signal.actorColor : `${signal.actorColor}60`,
+                        }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={pct}
+                      onChange={(e) =>
+                        handleSliderChange(option.value, Number(e.target.value))
+                      }
+                      className="absolute inset-x-0 h-6 opacity-0 cursor-pointer"
+                      data-testid={`slider-${signal.id}-${option.value}`}
+                    />
+                  </div>
+                  <span
+                    className={`text-[13px] tabular-nums w-[36px] text-right flex-shrink-0 ${
+                      isMax ? "font-bold text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {pct}%
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground/60 ml-[98px] leading-tight mt-0.5 hidden group-hover:block">
+                  {option.label}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
