@@ -20,8 +20,8 @@ export const NarrativePanel = memo(function NarrativePanel({
     return (
       <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4" data-testid="narrative-panel">
         <p className="text-[13px] text-muted-foreground text-center">
-          Activate decisions below to generate a scenario narrative and market outlook.
-          Toggle "Unknown" to "Active" and adjust the probability sliders for each option.
+          Adjust the sliders below to explore how different decision paths change the scenario outlook.
+          Drag left or right to shift probabilities toward each pole.
         </p>
       </div>
     );

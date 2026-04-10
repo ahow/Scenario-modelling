@@ -1,74 +1,42 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { type Signal, type SignalId, type ScenarioId, SIGNAL_MAP } from "../lib/config";
-import { type SignalState, createEqualDistribution } from "../lib/engine";
+import { type Signal, type SignalId } from "../lib/config";
 
 interface DecisionCardProps {
   signal: Signal;
-  state: SignalState;
-  onStateChange: (signalId: SignalId, state: SignalState) => void;
+  position: number; // 0–100 slider value
+  onPositionChange: (signalId: SignalId, position: number) => void;
 }
 
 export const DecisionCard = memo(function DecisionCard({
   signal,
-  state,
-  onStateChange,
+  position,
+  onPositionChange,
 }: DecisionCardProps) {
-  const isSet = state.mode === 'distribution';
+  const sliderRef = useRef<HTMLInputElement>(null);
+  const isMoved = position !== 50;
+  const hasCenter = signal.anchors.length === 3;
 
-  const handleToggleActive = useCallback(() => {
-    if (isSet) {
-      onStateChange(signal.id, { mode: 'unknown' });
-    } else {
-      onStateChange(signal.id, createEqualDistribution(signal.id));
-    }
-  }, [isSet, signal.id, onStateChange]);
-
-  const handleSliderChange = useCallback(
-    (optionValue: string, newPct: number) => {
-      if (state.mode !== 'distribution') return;
-
-      const options = signal.options;
-      const currentWeights = { ...state.weights };
-      const oldPct = currentWeights[optionValue] * 100;
-      const delta = newPct - oldPct;
-
-      // Distribute the delta proportionally among other options
-      const others = options.filter((o) => o.value !== optionValue);
-      const othersTotal = others.reduce((s, o) => s + (currentWeights[o.value] ?? 0), 0);
-
-      const newWeights: Record<string, number> = {};
-      newWeights[optionValue] = Math.max(0, Math.min(100, newPct)) / 100;
-
-      if (othersTotal > 0.001) {
-        const remaining = 1 - newWeights[optionValue];
-        for (const other of others) {
-          const share = (currentWeights[other.value] ?? 0) / othersTotal;
-          newWeights[other.value] = Math.max(0, remaining * share);
-        }
-      } else {
-        // All others are zero; distribute equally
-        const remaining = 1 - newWeights[optionValue];
-        for (const other of others) {
-          newWeights[other.value] = remaining / others.length;
-        }
-      }
-
-      // Normalize to exactly 1.0
-      const total = Object.values(newWeights).reduce((a, b) => a + b, 0);
-      for (const key of Object.keys(newWeights)) {
-        newWeights[key] = newWeights[key] / total;
-      }
-
-      onStateChange(signal.id, { mode: 'distribution', weights: newWeights });
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onPositionChange(signal.id, Number(e.target.value));
     },
-    [state, signal, onStateChange]
+    [signal.id, onPositionChange]
   );
+
+  const handleReset = useCallback(() => {
+    onPositionChange(signal.id, 50);
+  }, [signal.id, onPositionChange]);
+
+  // Compute which pole is dominant for visual feedback
+  const leftDominant = position < 45;
+  const rightDominant = position > 55;
+  const centered = !leftDominant && !rightDominant;
 
   return (
     <div
       className={`rounded-lg border transition-all duration-200 ${
-        isSet
+        isMoved
           ? "border-[hsl(var(--primary)/.25)] bg-card shadow-sm"
           : "border-border/50 bg-card/50"
       }`}
@@ -91,86 +59,101 @@ export const DecisionCard = memo(function DecisionCard({
             <span className="text-[13px] font-semibold">{signal.question}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        {isMoved && (
           <button
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
-              isSet
-                ? "bg-[hsl(var(--primary))] text-white"
-                : "bg-muted text-muted-foreground hover:bg-accent"
-            }`}
-            onClick={handleToggleActive}
-            data-testid={`toggle-${signal.id}`}
+            className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded transition-colors flex-shrink-0 ml-2"
+            onClick={handleReset}
+            data-testid={`reset-${signal.id}`}
           >
-            {isSet ? "Active" : "Unknown"}
+            Reset
           </button>
-        </div>
+        )}
       </div>
 
-      {/* Context text — always visible */}
+      {/* Context text */}
       <div className="px-3 pb-2">
         <p className="text-[12px] text-muted-foreground leading-relaxed">
           {signal.context}
         </p>
       </div>
 
-      {/* Sliders */}
-      {isSet && state.mode === 'distribution' && (
-        <div className="px-3 pb-3 space-y-2">
-          {signal.options.map((option) => {
-            const pct = Math.round((state.weights[option.value] ?? 0) * 100);
-            const isMax = pct === Math.max(...Object.values(state.weights).map(w => Math.round(w * 100)));
-
-            return (
-              <div key={option.value} className="group" data-testid={`slider-row-${signal.id}-${option.value}`}>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[12px] w-[90px] flex-shrink-0 truncate ${
-                      isMax ? "font-semibold text-foreground" : "text-muted-foreground"
-                    }`}
-                    title={option.label}
-                  >
-                    {option.shortLabel}
-                  </span>
-                  <div className="flex-1 relative h-6 flex items-center">
-                    <div className="absolute inset-x-0 h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-150"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: isMax ? signal.actorColor : `${signal.actorColor}60`,
-                        }}
-                      />
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={pct}
-                      onChange={(e) =>
-                        handleSliderChange(option.value, Number(e.target.value))
-                      }
-                      className="absolute inset-x-0 h-6 opacity-0 cursor-pointer"
-                      data-testid={`slider-${signal.id}-${option.value}`}
-                    />
-                  </div>
-                  <span
-                    className={`text-[13px] tabular-nums w-[36px] text-right flex-shrink-0 ${
-                      isMax ? "font-bold text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {pct}%
-                  </span>
-                </div>
-                {option.label !== option.shortLabel && (
-                  <p className="text-[11px] text-muted-foreground/60 ml-[98px] leading-tight mt-0.5">
-                    {option.label}
-                  </p>
-                )}
-              </div>
-            );
-          })}
+      {/* Spectrum slider */}
+      <div className="px-3 pb-3">
+        {/* Labels row */}
+        <div className="flex items-center justify-between mb-1">
+          <span
+            className={`text-[11px] transition-colors max-w-[40%] ${
+              leftDominant
+                ? "font-semibold text-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            {signal.leftLabel}
+          </span>
+          {hasCenter && (
+            <span
+              className={`text-[11px] transition-colors text-center ${
+                centered && isMoved
+                  ? "font-semibold text-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {signal.centerLabel}
+            </span>
+          )}
+          <span
+            className={`text-[11px] text-right transition-colors max-w-[40%] ${
+              rightDominant
+                ? "font-semibold text-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            {signal.rightLabel}
+          </span>
         </div>
-      )}
+
+        {/* Slider track */}
+        <div className="relative h-8 flex items-center">
+          {/* Background track */}
+          <div className="absolute inset-x-0 h-2 bg-muted rounded-full" />
+
+          {/* Filled portion — grows from centre */}
+          <div
+            className="absolute h-2 rounded-full transition-all duration-100"
+            style={{
+              backgroundColor: signal.actorColor,
+              opacity: isMoved ? 0.7 : 0.15,
+              left: position < 50 ? `${position}%` : '50%',
+              right: position > 50 ? `${100 - position}%` : '50%',
+            }}
+          />
+
+          {/* Centre tick mark */}
+          <div className="absolute left-1/2 -translate-x-px w-0.5 h-3 bg-muted-foreground/20 rounded-full" />
+
+          {/* Hidden range input */}
+          <input
+            ref={sliderRef}
+            type="range"
+            min={0}
+            max={100}
+            value={position}
+            onChange={handleChange}
+            className="absolute inset-x-0 h-8 opacity-0 cursor-pointer"
+            data-testid={`slider-${signal.id}`}
+          />
+
+          {/* Visible thumb */}
+          <div
+            className="absolute w-4 h-4 rounded-full border-2 transition-all duration-100 pointer-events-none -ml-2"
+            style={{
+              left: `${position}%`,
+              borderColor: signal.actorColor,
+              backgroundColor: isMoved ? signal.actorColor : 'hsl(var(--background))',
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 });

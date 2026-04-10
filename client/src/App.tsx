@@ -13,11 +13,10 @@ import {
 } from "./lib/config";
 import {
   type AllSignalStates,
-  type SignalState,
-  computeProbsFromDistributions,
+  computeProbsFromSliders,
   getBaseProbs,
   getDefaultStates,
-  countSetSignals,
+  countMovedSignals,
   computeWeightedMarket,
   generateNarrative,
 } from "./lib/engine";
@@ -32,18 +31,18 @@ export default function App() {
 
   const baseProbs = useMemo(() => getBaseProbs(), []);
   const baselineProbs = useMemo(
-    () => computeProbsFromDistributions(getDefaultStates(), baseProbs),
+    () => computeProbsFromSliders(getDefaultStates(), baseProbs),
     [baseProbs]
   );
   const currentProbs = useMemo(
-    () => computeProbsFromDistributions(states, baseProbs),
+    () => computeProbsFromSliders(states, baseProbs),
     [states, baseProbs]
   );
   const weightedMarket = useMemo(
     () => computeWeightedMarket(currentProbs),
     [currentProbs]
   );
-  const setCount = useMemo(() => countSetSignals(states), [states]);
+  const movedCount = useMemo(() => countMovedSignals(states), [states]);
 
   const narrative = useMemo(
     () => generateNarrative(currentProbs, weightedMarket, states),
@@ -54,9 +53,9 @@ export default function App() {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
 
-  const handleStateChange = useCallback(
-    (signalId: SignalId, state: SignalState) => {
-      setStates((prev) => ({ ...prev, [signalId]: state }));
+  const handlePositionChange = useCallback(
+    (signalId: SignalId, position: number) => {
+      setStates((prev) => ({ ...prev, [signalId]: position }));
     },
     []
   );
@@ -66,7 +65,6 @@ export default function App() {
   }, []);
 
   const handleCopyLink = useCallback(() => {
-    // Serialize state to URL for sharing
     const encoded = btoa(JSON.stringify(states));
     const url = `${window.location.origin}${window.location.pathname}#/?s=${encodeURIComponent(encoded)}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -116,13 +114,13 @@ export default function App() {
                     <div
                       key={i}
                       className={`w-1.5 h-3 rounded-sm transition-colors ${
-                        i < setCount ? "bg-[hsl(var(--primary))]" : "bg-muted-foreground/15"
+                        i < movedCount ? "bg-[hsl(var(--primary))]" : "bg-muted-foreground/15"
                       }`}
                     />
                   ))}
                 </div>
                 <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {setCount}/{SIGNALS.length}
+                  {movedCount}/{SIGNALS.length}
                 </span>
               </div>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={handleCopyLink} data-testid="button-copy-link">
@@ -160,26 +158,27 @@ export default function App() {
             marketNarrative={narrative.marketNarrative}
             topScenarios={narrative.topScenarios}
             weightedMarket={weightedMarket}
-            setCount={setCount}
+            setCount={movedCount}
           />
         </div>
 
         {/* Decisions */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Key Decisions — Probability Assessment
+            Key Decisions — Spectrum Assessment
           </h2>
         </div>
 
         <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
           <p>
-            For each decision point, toggle from "Unknown" to "Active" to engage the probability sliders.
-            Assign your probability estimate to each possible option — the sliders automatically sum to 100%.
+            Each decision point is represented as a spectrum between two opposing outcomes.
+            Drag the slider toward the pole you believe is more likely — the further you move it,
+            the stronger that signal's influence on the scenario probabilities.
           </p>
           <p>
-            The engine computes expected scenario probabilities by weighting each option's impact by
-            your assigned probability, then propagates through to probability-weighted market outcomes.
-            The narrative synthesises the most likely path and its market consequences.
+            All sliders default to the centre (neutral). The engine interpolates between
+            the anchor points and propagates the combined effect through to probability-weighted
+            scenario and market outcomes.
           </p>
           <p className="text-muted-foreground/70">
             Editorial estimates — not investment advice. Base probabilities and weights reflect analyst judgement as of April 2026.
@@ -193,8 +192,8 @@ export default function App() {
                 <DecisionCard
                   key={signal.id}
                   signal={signal}
-                  state={states[signal.id]}
-                  onStateChange={handleStateChange}
+                  position={states[signal.id]}
+                  onPositionChange={handlePositionChange}
                 />
               ))}
             </div>

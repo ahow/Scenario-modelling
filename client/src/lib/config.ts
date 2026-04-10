@@ -1,6 +1,6 @@
 // ============================================================
-// Iran Conflict Scenario Engine — Configuration v3
-// Probability-slider model with narrative generation
+// Iran Conflict Scenario Engine — Configuration v4
+// Bipolar spectrum slider model
 // ============================================================
 
 // --- SCENARIO DEFINITIONS ---
@@ -12,7 +12,7 @@ export interface Scenario {
   shortDesc: string;
   baseProb: number;
   color: string;
-  narrative: string; // editorial narrative fragment for this scenario
+  narrative: string;
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -29,22 +29,28 @@ export const SCENARIOS: Scenario[] = [
 export const SCENARIO_MAP = Object.fromEntries(SCENARIOS.map(s => [s.id, s])) as Record<ScenarioId, Scenario>;
 export const SCENARIO_IDS = SCENARIOS.map(s => s.id);
 
-// --- SIGNAL DEFINITIONS (with explanatory context) ---
+// --- SPECTRUM SIGNAL DEFINITIONS ---
 export type SignalId = 'trump_war' | 'trump_leb' | 'iran_nuke' | 'iran_strait' | 'iran_regime' | 'israel_leb' | 'china' | 'houthi' | 'market';
 
-export interface SignalOption {
-  value: string;
-  label: string;
-  shortLabel: string; // compact label for slider
-}
-
+/**
+ * Each signal is now a bipolar spectrum with a single slider (0–100).
+ * - `leftLabel` / `rightLabel`: the two poles
+ * - `centerLabel`: optional label for the midpoint (3-option signals)
+ * - `anchors`: the original option values at each anchor point
+ *   For 2-option signals: [left, right] (slider 0→left, 100→right)
+ *   For 3-option signals: [left, center, right] (slider 0→left, 50→center, 100→right)
+ * - Engine interpolates weights between adjacent anchors based on slider position.
+ */
 export interface Signal {
   id: SignalId;
   actor: string;
   actorColor: string;
   question: string;
-  context: string; // explanatory paragraph
-  options: SignalOption[];
+  context: string;
+  leftLabel: string;
+  rightLabel: string;
+  centerLabel?: string;
+  anchors: string[]; // 2 or 3 option values from the weight matrix
 }
 
 export const SIGNALS: Signal[] = [
@@ -54,11 +60,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#3266AD',
     question: 'War termination posture',
     context: 'The single most consequential variable. Trump faces a trilemma: pursue a negotiated settlement (costly in time and concessions), declare victory and withdraw (politically expedient but strategically hollow), or resume strikes to force compliance (risks escalation). His choice shapes whether the conflict ends, freezes, or intensifies.',
-    options: [
-      { value: 'ceasefire_deal', label: 'Pursuing ceasefire / deal', shortLabel: 'Deal' },
-      { value: 'declare_victory', label: 'Declaring victory / exit signals', shortLabel: 'Exit' },
-      { value: 'resume_strikes', label: 'Threatening / resuming strikes', shortLabel: 'Strikes' },
-    ],
+    leftLabel: 'Pursuing deal',
+    centerLabel: 'Declaring victory / exit',
+    rightLabel: 'Resuming strikes',
+    anchors: ['ceasefire_deal', 'declare_victory', 'resume_strikes'],
   },
   {
     id: 'trump_leb',
@@ -66,10 +71,9 @@ export const SIGNALS: Signal[] = [
     actorColor: '#3266AD',
     question: 'Lebanon ceasefire scope',
     context: 'The Lebanon exclusion is the hinge that could collapse the ceasefire. If Trump pressures Netanyahu to include Lebanon in a broader settlement, it removes the trigger for resumption. If he green-lights continued Israeli operations in southern Lebanon, Iran will likely treat this as a deal-breaker and re-close Hormuz.',
-    options: [
-      { value: 'pressure_israel', label: 'Pressuring Israel on Lebanon', shortLabel: 'Pressure' },
-      { value: 'greenlight_israel', label: 'Green-lighting Israel operations', shortLabel: 'Green-light' },
-    ],
+    leftLabel: 'Pressuring Israel',
+    rightLabel: 'Green-lighting Israel',
+    anchors: ['pressure_israel', 'greenlight_israel'],
   },
   {
     id: 'iran_nuke',
@@ -77,11 +81,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#D85A30',
     question: 'Nuclear posture',
     context: 'Iran\'s nuclear programme is both a bargaining chip and an existential threat. Engaging with IAEA inspections signals willingness to negotiate. Rejecting inspections preserves ambiguity. Covert weaponisation signals — enrichment beyond 60%, centrifuge cascading at Fordow — represent the most dangerous escalatory path and the one most likely to trigger Israeli pre-emption.',
-    options: [
-      { value: 'iaea_talks', label: 'Engaging IAEA / inspections', shortLabel: 'IAEA' },
-      { value: 'reject_inspections', label: 'Rejecting inspections', shortLabel: 'Reject' },
-      { value: 'covert_signals', label: 'Covert weaponisation signals', shortLabel: 'Covert' },
-    ],
+    leftLabel: 'IAEA transparency',
+    centerLabel: 'Rejecting inspections',
+    rightLabel: 'Covert weaponisation',
+    anchors: ['iaea_talks', 'reject_inspections', 'covert_signals'],
   },
   {
     id: 'iran_strait',
@@ -89,11 +92,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#D85A30',
     question: 'Strait of Hormuz strategy',
     context: 'Iran\'s leverage over global energy markets runs through the 21-mile-wide Strait of Hormuz. A partial reopening signals de-escalation. The yuan-denominated toll system represents a novel middle path — maintaining leverage while extracting revenue and strengthening the China relationship. Full closure is the maximum-pressure card but risks galvanising a US-led coalition response.',
-    options: [
-      { value: 'partial_open', label: 'Partial opening / de-escalation', shortLabel: 'Open' },
-      { value: 'tolls_yuan', label: 'Yuan transit tolls / managed closure', shortLabel: 'Tolls' },
-      { value: 'full_closure', label: 'Full closure maintained', shortLabel: 'Closed' },
-    ],
+    leftLabel: 'Reopening Strait',
+    centerLabel: 'Yuan toll system',
+    rightLabel: 'Full closure',
+    anchors: ['partial_open', 'tolls_yuan', 'full_closure'],
   },
   {
     id: 'iran_regime',
@@ -101,11 +103,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#D85A30',
     question: 'Regime stability',
     context: 'Mojtaba Khamenei\'s succession remains fragile. If he consolidates power, the regime can sustain a prolonged standoff. If the economic pain of war triggers a protest resurgence (as in 2022), the regime faces a two-front crisis. IRGC fracture — the most extreme scenario — would mean loss of centralised control over both the nuclear programme and Strait operations.',
-    options: [
-      { value: 'consolidated', label: 'Mojtaba consolidated', shortLabel: 'Stable' },
-      { value: 'protest_resurgence', label: 'Protest resurgence', shortLabel: 'Protests' },
-      { value: 'irgc_fracture', label: 'IRGC fracture signals', shortLabel: 'Fracture' },
-    ],
+    leftLabel: 'Regime consolidated',
+    centerLabel: 'Protest resurgence',
+    rightLabel: 'IRGC fracture',
+    anchors: ['consolidated', 'protest_resurgence', 'irgc_fracture'],
   },
   {
     id: 'israel_leb',
@@ -113,10 +114,9 @@ export const SIGNALS: Signal[] = [
     actorColor: '#1D9E75',
     question: 'Lebanon operations',
     context: 'Netanyahu\'s approach to southern Lebanon is the key trigger variable for ceasefire collapse. Continuing IDF operations in Lebanon — framed domestically as completing the Hezbollah degradation — directly contradicts Iran\'s ceasefire conditions. Pausing or withdrawing removes the immediate casus belli for resumption.',
-    options: [
-      { value: 'continuing_ops', label: 'Continuing operations', shortLabel: 'Continue' },
-      { value: 'pause_leb', label: 'Pausing / withdrawing', shortLabel: 'Pause' },
-    ],
+    leftLabel: 'Withdrawing / pausing',
+    rightLabel: 'Continuing operations',
+    anchors: ['pause_leb', 'continuing_ops'],
   },
   {
     id: 'china',
@@ -124,11 +124,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#A32D2D',
     question: 'Diplomatic pressure',
     context: 'China is Iran\'s most important economic partner and the largest importer of Gulf crude. If Xi pressures Iran to de-escalate, it significantly constrains Iran\'s options. Passive non-intervention allows the status quo to persist. Backchannel deal-making — negotiating a separate China-Iran energy arrangement — could freeze the conflict while circumventing Western sanctions.',
-    options: [
-      { value: 'pressuring_iran', label: 'Pressuring Iran to de-escalate', shortLabel: 'Pressure' },
-      { value: 'passive_china', label: 'Passive / non-interventionist', shortLabel: 'Passive' },
-      { value: 'backchannel_deal', label: 'Backchannel deal-making', shortLabel: 'Backchannel' },
-    ],
+    leftLabel: 'Pressuring Iran',
+    centerLabel: 'Passive / neutral',
+    rightLabel: 'Backchannel deal',
+    anchors: ['pressuring_iran', 'passive_china', 'backchannel_deal'],
   },
   {
     id: 'houthi',
@@ -136,11 +135,10 @@ export const SIGNALS: Signal[] = [
     actorColor: '#534AB7',
     question: 'Red Sea posture',
     context: 'The Houthi dimension transforms a regional conflict into a global shipping crisis. Restraint keeps the conflict contained to Hormuz. Active Red Sea attacks create the dual-chokepoint scenario that triggers the most extreme market outcomes — simultaneous disruption of the two sea lanes through which ~35% of global seaborne oil transits.',
-    options: [
-      { value: 'restraint', label: 'Restraint / ceasefire holding', shortLabel: 'Restraint' },
-      { value: 'preparing_attacks', label: 'Preparing new attacks', shortLabel: 'Preparing' },
-      { value: 'active_attacks', label: 'Active Red Sea attacks', shortLabel: 'Attacks' },
-    ],
+    leftLabel: 'Restraint',
+    centerLabel: 'Preparing attacks',
+    rightLabel: 'Active attacks',
+    anchors: ['restraint', 'preparing_attacks', 'active_attacks'],
   },
   {
     id: 'market',
@@ -148,16 +146,17 @@ export const SIGNALS: Signal[] = [
     actorColor: '#888780',
     question: 'Insurance / risk premiums',
     context: 'Gulf shipping insurance premiums are a market-priced signal of conflict probability. Falling premiums indicate that underwriters — who have the most direct financial exposure — assess diminishing risk. Spiking premiums reflect real-time intelligence from shipping operators about deteriorating conditions and are often a leading indicator of escalation.',
-    options: [
-      { value: 'premiums_falling', label: 'War risk premiums falling', shortLabel: 'Falling' },
-      { value: 'premiums_spiking', label: 'War risk premiums spiking', shortLabel: 'Spiking' },
-    ],
+    leftLabel: 'Premiums falling',
+    rightLabel: 'Premiums spiking',
+    anchors: ['premiums_falling', 'premiums_spiking'],
   },
 ];
 
 export const SIGNAL_MAP = Object.fromEntries(SIGNALS.map(s => [s.id, s])) as Record<SignalId, Signal>;
 
-// --- WEIGHT MATRIX (unchanged) ---
+// --- WEIGHT MATRIX (unchanged from v3) ---
+// Each signal → option → scenario impact in percentage-point units.
+// The engine interpolates between anchor points based on slider position.
 type WeightMatrix = Record<string, Record<string, Partial<Record<ScenarioId, number>>>>;
 
 export const WEIGHTS: WeightMatrix = {
@@ -186,8 +185,8 @@ export const WEIGHTS: WeightMatrix = {
     irgc_fracture:      { deal: -1.0, frozen: -1.5, resumed: -0.5, hormuz: -0.5, dual: 0, trump_exit: 0, collapse: 4.0, breakout: 1.5 },
   },
   israel_leb: {
-    continuing_ops: { deal: -2.5, frozen: -0.5, resumed: 3.0, hormuz: 0.5, dual: 1.0, trump_exit: -0.5, collapse: 0, breakout: 0 },
     pause_leb:      { deal: 2.0, frozen: 1.0, resumed: -2.5, hormuz: -0.5, dual: -1.0, trump_exit: 0, collapse: 0, breakout: 0 },
+    continuing_ops: { deal: -2.5, frozen: -0.5, resumed: 3.0, hormuz: 0.5, dual: 1.0, trump_exit: -0.5, collapse: 0, breakout: 0 },
   },
   china: {
     pressuring_iran:  { deal: 1.5, frozen: 1.0, resumed: -0.5, hormuz: -2.0, dual: -1.5, trump_exit: 0, collapse: 0, breakout: -0.5 },
