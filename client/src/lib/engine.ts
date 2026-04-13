@@ -124,6 +124,11 @@ export function countMovedSignals(states: AllSignalStates): number {
   return Object.values(states).filter(v => v !== 50).length;
 }
 
+/** Check if any slider has been set (i.e. not all at neutral 50) */
+export function hasAnyInput(states: AllSignalStates): boolean {
+  return Object.values(states).some(v => v !== 50);
+}
+
 /**
  * Generate narrative text based on the current probability distribution
  */
@@ -145,7 +150,7 @@ export function generateNarrative(
 
   const movedCount = countMovedSignals(states);
   if (movedCount === 0) {
-    scenarioNarrative = 'Adjust the sliders below to explore how different decision paths change the scenario outlook. Each slider represents a spectrum — drag left or right to shift probabilities toward that pole.';
+    scenarioNarrative = 'All decisions are at neutral positions. Adjust the sliders below to explore how different decision paths change the scenario outlook. Drag left or right to shift probabilities toward each pole.';
   } else {
     const topPct = Math.round(top.prob * 100);
     const secondPct = Math.round(second.prob * 100);
@@ -204,11 +209,24 @@ export function generateNarrative(
 }
 
 /**
- * Create default states — all sliders at centre (50)
+ * Create default states — all sliders at centre (50).
+ * Used as the neutral baseline for comparison.
  */
 export function getDefaultStates(): AllSignalStates {
   return Object.fromEntries(
     SIGNALS.map(s => [s.id, 50])
+  ) as AllSignalStates;
+}
+
+/**
+ * Create initial states from briefing estimates.
+ * Falls back to 50 for any signal without a briefing position.
+ */
+export function getBriefingDefaultStates(
+  briefingAnchors: Partial<Record<SignalId, number>>,
+): AllSignalStates {
+  return Object.fromEntries(
+    SIGNALS.map(s => [s.id, briefingAnchors[s.id] ?? 50])
   ) as AllSignalStates;
 }
 

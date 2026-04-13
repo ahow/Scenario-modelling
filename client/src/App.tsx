@@ -7,6 +7,8 @@ import { DecisionCard, type AnchorMarker } from "./components/DecisionCard";
 import { NarrativePanel } from "./components/NarrativePanel";
 import { ScenarioDrawer } from "./components/ScenarioDrawer";
 import { BriefingPanel } from "./components/BriefingPanel";
+import { ScenarioProbChart } from "./components/ScenarioProbChart";
+import { HistoryChart } from "./components/HistoryChart";
 import {
   type SignalId,
   type ScenarioId,
@@ -18,6 +20,7 @@ import {
   computeProbsFromSliders,
   getBaseProbs,
   getDefaultStates,
+  getBriefingDefaultStates,
   countMovedSignals,
   computeWeightedMarket,
   generateNarrative,
@@ -43,7 +46,11 @@ export default function App() {
   const [dark, setDark] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
-  const [states, setStates] = useState<AllSignalStates>(() => getDefaultStates());
+  // Default to briefing positions (not neutral midpoints)
+  const briefingAnchorsInit = getBriefingAnchors();
+  const [states, setStates] = useState<AllSignalStates>(() =>
+    getBriefingDefaultStates(briefingAnchorsInit)
+  );
   const [copied, setCopied] = useState(false);
   const [drawerScenario, setDrawerScenario] = useState<ScenarioId | null>(null);
   const [autoCompute, setAutoCompute] = useState(true);
@@ -134,9 +141,10 @@ export default function App() {
   }, []);
 
   const handleReset = useCallback(() => {
-    setStates(getDefaultStates());
+    // Reset to briefing positions (the informed default), not neutral midpoints
+    setStates(getBriefingDefaultStates(briefingAnchors));
     setLockedSignals(new Set());
-  }, []);
+  }, [briefingAnchors]);
 
   const handleApplyBriefingEstimates = useCallback(() => {
     const newStates = { ...states };
@@ -281,13 +289,28 @@ export default function App() {
         />
       </div>
 
-      {/* Scenario bar */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-2 pb-2">
+      {/* Scenario probability chart + bar */}
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-3 pb-2 space-y-3">
+        {/* Prominent probability distribution chart */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Probability Distribution
+          </h3>
+          <ScenarioProbChart
+            currentProbs={currentProbs}
+            baselineProbs={baselineProbs}
+          />
+        </div>
+
+        {/* Scenario bar (compact) */}
         <ScenarioBar
           currentProbs={currentProbs}
           baselineProbs={baselineProbs}
           onScenarioClick={setDrawerScenario}
         />
+
+        {/* Historical timeseries */}
+        <HistoryChart />
       </div>
 
       {/* Main content: narrative + decisions */}
