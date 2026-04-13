@@ -1,5 +1,14 @@
 import { memo } from "react";
 import { type ScenarioId, SCENARIO_MAP, ASSETS, ASSET_MAP, type AssetId } from "../lib/config";
+import type { LiveQuotes } from "../lib/marketData";
+import { FALLBACK_PRICES, pctFromBaseline } from "../lib/marketData";
+
+/** Convert expected (% from baseline) to expected (% from current) */
+function pctFromCurrent(expectedFromBaseline: number, currentFromBaseline: number): number {
+  return ((1 + expectedFromBaseline / 100) / (1 + currentFromBaseline / 100) - 1) * 100;
+}
+
+const fmtPct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 
 interface NarrativePanelProps {
   scenarioNarrative: string;
@@ -7,6 +16,7 @@ interface NarrativePanelProps {
   topScenarios: Array<{ id: ScenarioId; prob: number }>;
   weightedMarket: Record<AssetId, { lo: number; mid: number; hi: number }>;
   setCount: number;
+  liveQuotes?: LiveQuotes | null;
 }
 
 export const NarrativePanel = memo(function NarrativePanel({
@@ -15,6 +25,7 @@ export const NarrativePanel = memo(function NarrativePanel({
   topScenarios,
   weightedMarket,
   setCount,
+  liveQuotes,
 }: NarrativePanelProps) {
   if (setCount === 0) {
     return (
@@ -48,6 +59,10 @@ export const NarrativePanel = memo(function NarrativePanel({
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-3">
           {ASSETS.map((asset) => {
             const wm = weightedMarket[asset.id];
+            const currentFromBaseline = liveQuotes?.pctFromBaseline[asset.id] ?? pctFromBaseline(asset.id, FALLBACK_PRICES[asset.id]);
+            const midFromCurr = pctFromCurrent(wm.mid, currentFromBaseline);
+            const loFromCurr = pctFromCurrent(wm.lo, currentFromBaseline);
+            const hiFromCurr = pctFromCurrent(wm.hi, currentFromBaseline);
             return (
               <div
                 key={asset.id}
@@ -57,10 +72,10 @@ export const NarrativePanel = memo(function NarrativePanel({
                   {asset.name}
                 </div>
                 <div className="text-sm font-bold tabular-nums">
-                  {asset.format(wm.mid)}
+                  {fmtPct(midFromCurr)}
                 </div>
                 <div className="text-[9px] text-muted-foreground tabular-nums">
-                  {asset.formatShort(wm.lo)} – {asset.formatShort(wm.hi)}
+                  {fmtPct(loFromCurr)} – {fmtPct(hiFromCurr)}
                 </div>
               </div>
             );

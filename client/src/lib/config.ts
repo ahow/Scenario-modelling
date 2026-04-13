@@ -389,12 +389,12 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
 
 // --- NARRATIVE TEMPLATES FOR MARKET COMMENTARY ---
 export const MARKET_COMMENTARY: Record<string, (values: Record<string, string>) => string> = {
-  oil_high: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels, reflecting sustained supply disruption through the Strait of Hormuz and elevated risk premiums in tanker insurance markets.`,
-  oil_low: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels as the risk premium partially dissipates and Strait transit normalises, restoring approximately 20m bbl/day of flow capacity.`,
-  oil_mid: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels, trading in an elevated but stable range as partial Strait restrictions maintain a moderate risk premium.`,
-  equity_bearish: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
-  equity_bullish: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
-  equity_flat: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels, reflecting an uneasy balance between persistent geopolitical risk and the market's ability to price in a prolonged stalemate.`,
-  gold_high: ({ pct }) => `Gold is expected ${pct} above pre-war levels, driven by safe-haven demand, central bank accumulation, and hedging against tail-risk scenarios including nuclear escalation.`,
-  gold_low: ({ pct }) => `Gold is expected ${pct} from pre-war levels, moderating from peak levels as de-escalation reduces the systemic risk premium that drove the recent rally.`,
+  oil_high: ({ pct }) => `Brent crude is expected ${pct} from current levels, reflecting sustained supply disruption through the Strait of Hormuz and elevated risk premiums in tanker insurance markets.`,
+  oil_low: ({ pct }) => `Brent crude is expected ${pct} from current levels as the risk premium partially dissipates and Strait transit normalises, restoring approximately 20m bbl/day of flow capacity.`,
+  oil_mid: ({ pct }) => `Brent crude is expected ${pct} from current levels, trading in an elevated but stable range as partial Strait restrictions maintain a moderate risk premium.`,
+  equity_bearish: ({ pct }) => `Developed market equities are expected ${pct} from current levels, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
+  equity_bullish: ({ pct }) => `Developed market equities are expected ${pct} from current levels as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
+  equity_flat: ({ pct }) => `Developed market equities are expected ${pct} from current levels, reflecting an uneasy balance between persistent geopolitical risk and the market's ability to price in a prolonged stalemate.`,
+  gold_high: ({ pct }) => `Gold is expected ${pct} from current levels, driven by safe-haven demand, central bank accumulation, and hedging against tail-risk scenarios including nuclear escalation.`,
+  gold_low: ({ pct }) => `Gold is expected ${pct} from current levels, moderating from peak levels as de-escalation reduces the systemic risk premium that drove the recent rally.`,
 };

@@ -17,6 +17,7 @@ import {
   type ScenarioId,
 } from '../lib/config';
 import type { LiveQuotes } from '../lib/marketData';
+import { FALLBACK_PRICES, pctFromBaseline } from '../lib/marketData';
 
 export type PortfolioAssetId = 'dm_eq' | 'em_eq' | 'credit' | 'govbond' | 'brent' | 'gold' | 'cash';
 
@@ -227,13 +228,24 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     return null;
   }, [isPortfolio, currentProbs, portfolioWeights]);
 
-  const expectedValue = isPortfolio
+  const expectedFromBaseline = isPortfolio
     ? (portfolioExpected?.mid ?? 100)
     : (wm?.mid ?? 0);
 
-  // Current market level as % from baseline (live data)
-  const currentPct = isPortfolio ? null : (liveQuotes?.pctFromBaseline[selectedAsset] ?? null);
-  const hasCurrentLine = isPortfolio ? true : currentPct !== null;
+  // Current market level as % from baseline (live data or fallback)
+  const currentPct = isPortfolio ? null : (
+    liveQuotes?.pctFromBaseline[selectedAsset] ??
+    pctFromBaseline(selectedAsset, FALLBACK_PRICES[selectedAsset])
+  );
+  const hasCurrentLine = true; // always show: current level for assets, Base(100) for portfolio
+
+  // Expected % change from CURRENT levels (not baseline)
+  // If baseline → current = +C%, and baseline → expected = +E%, then current → expected = (1+E/100)/(1+C/100) - 1
+  const expectedFromCurrent = isPortfolio
+    ? (portfolioExpected?.mid ?? 100) // portfolio stays rebased to 100
+    : currentPct !== null
+      ? ((1 + (wm?.mid ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
+      : (wm?.mid ?? 0);
 
   const formatTick = (v: number) => {
     if (isPortfolio) return v.toFixed(0);
@@ -244,6 +256,18 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     if (isPortfolio) return v.toFixed(1);
     return fmtPct(v);
   };
+
+  // Range from current levels
+  const expectedLoFromCurrent = isPortfolio
+    ? (portfolioExpected?.lo ?? 100)
+    : currentPct !== null
+      ? ((1 + (wm?.lo ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
+      : (wm?.lo ?? 0);
+  const expectedHiFromCurrent = isPortfolio
+    ? (portfolioExpected?.hi ?? 100)
+    : currentPct !== null
+      ? ((1 + (wm?.hi ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
+      : (wm?.hi ?? 0);
 
   const displayName = isPortfolio ? 'Portfolio' : asset!.name;
 
@@ -261,9 +285,6 @@ export const MarketImpactChart = memo(function MarketImpactChart({
       </div>
     );
   };
-
-  const expectedLo = isPortfolio ? (portfolioExpected?.lo ?? 100) : (wm?.lo ?? 0);
-  const expectedHi = isPortfolio ? (portfolioExpected?.hi ?? 100) : (wm?.hi ?? 0);
 
   const currentLineValue = isPortfolio ? 100 : (currentPct ?? 0);
 
@@ -302,16 +323,12 @@ export const MarketImpactChart = memo(function MarketImpactChart({
       <div className="flex items-baseline justify-between mb-2">
         <h4 className="text-[13px] font-semibold">{displayName}</h4>
         <div className="flex items-baseline gap-3">
-          {hasCurrentLine && (
-            <span className="text-[11px] text-muted-foreground">
-              {isPortfolio ? 'Base' : 'Current'}: <span className="font-semibold tabular-nums text-foreground">{isPortfolio ? '100' : fmtPct(currentPct!)}</span>
-            </span>
-          )}
           <span className="text-[11px] text-muted-foreground">
-            Expected: <span className="font-bold tabular-nums text-[14px] text-foreground">{formatShortValue(expectedValue)}</span>
+            Expected: <span className="font-bold tabular-nums text-[14px] text-foreground">{formatShortValue(expectedFromCurrent)}</span>
+            {!isPortfolio && <span className="text-[10px] text-muted-foreground ml-0.5">from current</span>}
           </span>
           <span className="text-[10px] text-muted-foreground tabular-nums">
-            ({formatShortValue(expectedLo)} – {formatShortValue(expectedHi)})
+            ({formatShortValue(expectedLoFromCurrent)} – {formatShortValue(expectedHiFromCurrent)})
           </span>
         </div>
       </div>
@@ -357,12 +374,12 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
             {/* Expected value line */}
             <ReferenceLine
-              x={expectedValue}
+              x={expectedFromBaseline}
               stroke="hsl(var(--foreground))"
               strokeWidth={2.5}
               strokeDasharray="6 3"
               label={{
-                value: `Expected: ${formatShortValue(expectedValue)}`,
+                value: `Expected: ${formatShortValue(expectedFromCurrent)}${isPortfolio ? '' : ' from current'}`,
                 position: 'top',
                 fontSize: 11,
                 fill: 'hsl(var(--foreground))',
@@ -402,9 +419,9 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
       <p className="text-[10px] text-muted-foreground/60 leading-relaxed mt-2">
         {isPortfolio
-          ? 'The curve shows the probability-weighted distribution of portfolio outcomes, rebased to 100. Each scenario contributes a blended return computed from your allocation weights across all asset classes. Cash contributes 0%. All values are % change from pre-war baseline (3-month avg, Nov 2025 – Feb 2026). Editorial estimates.'
-          : <>All values are % change from the pre-war baseline (3-month average, Nov 2025 – Feb 2026) using ETF proxies ({asset!.ticker}).
-            The "Current" line shows today's live market level relative to the same baseline.
+          ? 'The curve shows the probability-weighted distribution of portfolio outcomes, rebased to 100. Each scenario contributes a blended return computed from your allocation weights across all asset classes. Cash contributes 0%. Editorial estimates.'
+          : <>The X-axis shows % change from the pre-war baseline (3-month avg, Nov 2025 – Feb 2026) using ETF proxies ({asset!.ticker}).
+            The "Current" line marks today's market level. Expected values in the header are expressed as % change from current levels.
             The distribution shows the probability-weighted range of scenario outcomes. Editorial estimates.</>
         }
       </p>

@@ -129,13 +129,22 @@ export function hasAnyInput(states: AllSignalStates): boolean {
   return Object.values(states).some(v => v !== 50);
 }
 
+/** Convert expected (% from baseline) to expected (% from current) */
+function pctFromCurrent(expectedFromBaseline: number, currentFromBaseline: number): number {
+  return ((1 + expectedFromBaseline / 100) / (1 + currentFromBaseline / 100) - 1) * 100;
+}
+
+const fmtPctNarr = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+
 /**
- * Generate narrative text based on the current probability distribution
+ * Generate narrative text based on the current probability distribution.
+ * currentFromBaseline: live market levels as % from baseline (used to express expected values relative to current).
  */
 export function generateNarrative(
   probs: Record<ScenarioId, number>,
   market: Record<AssetId, { lo: number; mid: number; hi: number }>,
   states: AllSignalStates,
+  currentFromBaseline?: Record<AssetId, number>,
 ): { scenarioNarrative: string; marketNarrative: string; topScenarios: Array<{ id: ScenarioId; prob: number }> } {
   const sorted = SCENARIO_IDS
     .map(id => ({ id, prob: probs[id] }))
@@ -172,32 +181,38 @@ export function generateNarrative(
 
   let marketNarrative = '';
   if (movedCount > 0) {
-    const oil = market.brent.mid;   // now % from baseline
+    const oil = market.brent.mid;   // % from baseline
     const dm = market.dm_eq.mid;    // % from baseline
     const gold = market.gold.mid;   // % from baseline
 
+    // Compute from-current values for display
+    const oilFromCurr = currentFromBaseline ? pctFromCurrent(oil, currentFromBaseline.brent) : oil;
+    const dmFromCurr = currentFromBaseline ? pctFromCurrent(dm, currentFromBaseline.dm_eq) : dm;
+    const goldFromCurr = currentFromBaseline ? pctFromCurrent(gold, currentFromBaseline.gold) : gold;
+
+    // Thresholds still use baseline-scale (model calibration), but displayed % is from current
     if (oil > 70) {
-      marketNarrative += MARKET_COMMENTARY.oil_high({ pct: ASSET_MAP.brent.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_high({ pct: fmtPctNarr(oilFromCurr) });
     } else if (oil < 30) {
-      marketNarrative += MARKET_COMMENTARY.oil_low({ pct: ASSET_MAP.brent.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_low({ pct: fmtPctNarr(oilFromCurr) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.oil_mid({ pct: ASSET_MAP.brent.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_mid({ pct: fmtPctNarr(oilFromCurr) });
     }
 
     marketNarrative += ' ';
     if (dm < -5) {
-      marketNarrative += MARKET_COMMENTARY.equity_bearish({ pct: ASSET_MAP.dm_eq.format(dm) });
+      marketNarrative += MARKET_COMMENTARY.equity_bearish({ pct: fmtPctNarr(dmFromCurr) });
     } else if (dm > 5) {
-      marketNarrative += MARKET_COMMENTARY.equity_bullish({ pct: ASSET_MAP.dm_eq.format(dm) });
+      marketNarrative += MARKET_COMMENTARY.equity_bullish({ pct: fmtPctNarr(dmFromCurr) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.equity_flat({ pct: ASSET_MAP.dm_eq.format(dm) });
+      marketNarrative += MARKET_COMMENTARY.equity_flat({ pct: fmtPctNarr(dmFromCurr) });
     }
 
     marketNarrative += ' ';
     if (gold > 15) {
-      marketNarrative += MARKET_COMMENTARY.gold_high({ pct: ASSET_MAP.gold.format(gold) });
+      marketNarrative += MARKET_COMMENTARY.gold_high({ pct: fmtPctNarr(goldFromCurr) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.gold_low({ pct: ASSET_MAP.gold.format(gold) });
+      marketNarrative += MARKET_COMMENTARY.gold_low({ pct: fmtPctNarr(goldFromCurr) });
     }
   }
 

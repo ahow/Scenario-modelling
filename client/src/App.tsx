@@ -12,10 +12,12 @@ import { MarketImpactChart, PORTFOLIO_ASSETS, DEFAULT_PORTFOLIO_WEIGHTS, type Po
 import {
   type SignalId,
   type ScenarioId,
+  type AssetId,
   SIGNALS,
   SIGNAL_MAP,
   SCENARIOS,
   SCENARIO_MAP,
+  ASSETS as ALL_ASSETS,
 } from "./lib/config";
 import {
   type AllSignalStates,
@@ -43,7 +45,7 @@ import {
   computeAllEndogenous,
   getReactionFunction,
 } from "./lib/endogenous";
-import { fetchLiveQuotes, type LiveQuotes } from "./lib/marketData";
+import { fetchLiveQuotes, type LiveQuotes, FALLBACK_PRICES, pctFromBaseline } from "./lib/marketData";
 
 type TabId = 'decisions' | 'results' | 'about';
 
@@ -168,9 +170,18 @@ export default function App() {
     [currentProbs]
   );
   const movedCount = useMemo(() => countMovedSignals(states), [states]);
+  // Compute currentFromBaseline for all assets (live or fallback)
+  const currentFromBaseline = useMemo(() => {
+    const result = {} as Record<AssetId, number>;
+    for (const a of ALL_ASSETS) {
+      result[a.id] = liveQuotes?.pctFromBaseline[a.id] ?? pctFromBaseline(a.id, FALLBACK_PRICES[a.id]);
+    }
+    return result;
+  }, [liveQuotes]);
+
   const narrative = useMemo(
-    () => generateNarrative(currentProbs, weightedMarket, states),
-    [currentProbs, weightedMarket, states]
+    () => generateNarrative(currentProbs, weightedMarket, states, currentFromBaseline),
+    [currentProbs, weightedMarket, states, currentFromBaseline]
   );
 
   const briefing = useMemo(() => getCurrentBriefing(), []);
@@ -458,7 +469,7 @@ export default function App() {
 
           {/* Market strip summary */}
           <div className="pb-2 border-b border-border/30 mb-4">
-            <MarketStrip weightedMarket={weightedMarket} />
+            <MarketStrip weightedMarket={weightedMarket} liveQuotes={liveQuotes} />
           </div>
 
           {/* Scenario Outlook — at the top */}
@@ -469,6 +480,7 @@ export default function App() {
               topScenarios={narrative.topScenarios}
               weightedMarket={weightedMarket}
               setCount={movedCount}
+              liveQuotes={liveQuotes}
             />
           </div>
 
