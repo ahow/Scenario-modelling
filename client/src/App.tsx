@@ -8,7 +8,7 @@ import { NarrativePanel } from "./components/NarrativePanel";
 import { ScenarioDrawer } from "./components/ScenarioDrawer";
 import { BriefingPanel } from "./components/BriefingPanel";
 import { ScenarioProbChart } from "./components/ScenarioProbChart";
-import { MarketImpactChart } from "./components/MarketImpactChart";
+import { MarketImpactChart, PORTFOLIO_ASSETS, DEFAULT_PORTFOLIO_WEIGHTS, type PortfolioAssetId } from "./components/MarketImpactChart";
 import {
   type SignalId,
   type ScenarioId,
@@ -46,6 +46,70 @@ import {
 
 type TabId = 'decisions' | 'results' | 'about';
 
+/** Inline portfolio allocation row — horizontal with editable % inputs */
+function PortfolioRow({
+  weights,
+  onChange,
+}: {
+  weights: Record<PortfolioAssetId, number>;
+  onChange: (w: Record<PortfolioAssetId, number>) => void;
+}) {
+  const total = PORTFOLIO_ASSETS.reduce((sum, a) => sum + (weights[a.id] || 0), 0);
+  const isValid = total === 100;
+
+  const handleChange = (id: PortfolioAssetId, raw: string) => {
+    const val = raw === '' ? 0 : Math.max(0, Math.min(100, parseInt(raw, 10) || 0));
+    onChange({ ...weights, [id]: val });
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
+        {PORTFOLIO_ASSETS.map(a => (
+          <div key={a.id} className="flex flex-col items-center min-w-[72px]">
+            <label className="text-[10px] font-medium text-muted-foreground mb-1 whitespace-nowrap">
+              {a.label}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={weights[a.id]}
+                onChange={e => handleChange(a.id, e.target.value)}
+                className={`w-[56px] h-7 text-center text-[13px] font-semibold tabular-nums border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-[var(--sch-blue)] ${
+                  !isValid ? 'border-red-400 text-red-600 dark:text-red-400' : 'border-border text-foreground'
+                }`}
+                data-testid={`portfolio-weight-${a.id}`}
+              />
+              <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">%</span>
+            </div>
+          </div>
+        ))}
+        {/* Total indicator */}
+        <div className="flex flex-col items-center min-w-[60px]">
+          <label className="text-[10px] font-medium text-muted-foreground mb-1">=</label>
+          <div
+            className={`h-7 px-2 flex items-center text-[13px] font-bold tabular-nums rounded-md ${
+              isValid
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
+            }`}
+            data-testid="portfolio-total"
+          >
+            {total}%
+          </div>
+        </div>
+      </div>
+      {!isValid && (
+        <p className="text-[11px] text-red-500 mt-1.5 font-medium" data-testid="portfolio-warning">
+          Weights must sum to 100% (currently {total}%)
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [dark, setDark] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -60,6 +124,9 @@ export default function App() {
   const [autoCompute, setAutoCompute] = useState(true);
   const [lockedSignals, setLockedSignals] = useState<Set<SignalId>>(new Set());
   const [polymarketData, setPolymarketData] = useState<PolymarketMapping[]>([]);
+  const [portfolioWeights, setPortfolioWeights] = useState<Record<PortfolioAssetId, number>>(
+    () => ({ ...DEFAULT_PORTFOLIO_WEIGHTS })
+  );
 
   useEffect(() => {
     fetchPolymarketData().then(setPolymarketData).catch(() => {});
@@ -413,6 +480,18 @@ export default function App() {
             />
           </div>
 
+          {/* Portfolio allocation */}
+          <div className="mb-4 border border-border bg-card p-5">
+            <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-3 sch-accent-bar">
+              Portfolio Allocation
+            </h3>
+            <p className="text-[12px] text-muted-foreground mb-3 leading-relaxed">
+              Set your portfolio weights across asset classes to see the blended outcome distribution.
+              Weights must sum to 100%.
+            </p>
+            <PortfolioRow weights={portfolioWeights} onChange={setPortfolioWeights} />
+          </div>
+
           {/* Market impact distributions */}
           <div className="mb-4 border border-border bg-card p-5">
             <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-4 sch-accent-bar">
@@ -421,6 +500,7 @@ export default function App() {
             <MarketImpactChart
               currentProbs={currentProbs}
               weightedMarket={weightedMarket}
+              portfolioWeights={portfolioWeights}
             />
           </div>
 
