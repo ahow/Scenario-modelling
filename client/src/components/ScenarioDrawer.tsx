@@ -62,7 +62,7 @@ export const ScenarioDrawer = memo(function ScenarioDrawer({
               />
               <h3 className="text-base font-semibold">{scenario.name}</h3>
             </div>
-            <p className="text-[12px] text-muted-foreground">{scenario.shortDesc}</p>
+            <p className="text-[12px] text-muted-foreground">{scenario.tooltipDesc}</p>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7 -mr-1 -mt-1" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -100,7 +100,7 @@ export const ScenarioDrawer = memo(function ScenarioDrawer({
           <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Conditional Market Impact (3–12m)
           </h4>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
             {ASSETS.map((asset) => {
               const assetImpact = impact[asset.id];
               return (
@@ -108,17 +108,14 @@ export const ScenarioDrawer = memo(function ScenarioDrawer({
                   key={asset.id}
                   className="text-center p-2 rounded-md bg-muted/30 border border-border/30"
                 >
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                  <div className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1 leading-tight">
                     {asset.name}
                   </div>
                   <div className="text-sm font-semibold tabular-nums">
                     {asset.format(assetImpact.mid)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground tabular-nums">
+                  <div className="text-[9px] text-muted-foreground tabular-nums">
                     {asset.formatShort(assetImpact.lo)}–{asset.formatShort(assetImpact.hi)}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground/70 mt-0.5">
-                    {assetImpact.direction}
                   </div>
                 </div>
               );

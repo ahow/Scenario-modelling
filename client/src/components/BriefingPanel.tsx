@@ -14,7 +14,7 @@ export const BriefingPanel = memo(function BriefingPanel({
   briefingAge,
   onApplyEstimates,
 }: BriefingPanelProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const severityStyles = {
     normal: 'border-border bg-card',

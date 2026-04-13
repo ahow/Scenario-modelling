@@ -1,6 +1,6 @@
 // ============================================================
-// Iran Conflict Scenario Engine — Configuration v4
-// Bipolar spectrum slider model
+// Iran Conflict Scenario Engine — Configuration v7
+// New asset classes + improved scenario descriptions
 // ============================================================
 
 // --- SCENARIO DEFINITIONS ---
@@ -10,20 +10,85 @@ export interface Scenario {
   id: ScenarioId;
   name: string;
   shortDesc: string;
+  tooltipDesc: string; // expanded description for charts
   baseProb: number;
   color: string;
   narrative: string;
 }
 
 export const SCENARIOS: Scenario[] = [
-  { id: 'deal',       name: 'Durable diplomatic deal',           shortDesc: 'Full Hormuz reopening + nuclear agreement',         baseProb: 0.11, color: '#1D9E75', narrative: 'A comprehensive deal is reached. Iran agrees to verifiable nuclear limits in exchange for phased sanctions relief. The Strait of Hormuz reopens fully, shipping normalises within weeks, and Brent crude drops sharply as the risk premium evaporates. Equities rally on the removal of tail risk.' },
-  { id: 'frozen',     name: 'Frozen conflict — no deal',         shortDesc: 'Ceasefire holds; no comprehensive settlement',      baseProb: 0.28, color: '#3266AD', narrative: 'The ceasefire holds but neither side moves toward a comprehensive settlement. Hormuz remains partially restricted. Oil prices settle into an elevated range, equities drift modestly higher as the worst-case fades, and investors price in a prolonged stalemate.' },
-  { id: 'resumed',    name: 'Ceasefire collapses — limited war', shortDesc: 'Lebanon exclusion triggers Hormuz re-closure',      baseProb: 0.22, color: '#E9AB2E', narrative: 'The ceasefire breaks down, likely triggered by Israel\'s exclusion of Lebanon from the deal. Iran re-closes the Strait of Hormuz. Oil spikes above $120/bbl as supply disruptions cascade through refinery markets. Equities sell off sharply and treasury yields whipsaw.' },
-  { id: 'hormuz',     name: 'Prolonged Hormuz chokepoint',       shortDesc: '6–12 month partial/full Strait disruption',         baseProb: 0.16, color: '#D85A30', narrative: 'Iran maintains a prolonged closure or managed toll system on the Strait. The disruption persists for 6–12 months. Oil sustains above $110/bbl, global growth estimates are revised down, and central banks face a stagflationary dilemma. The dollar strengthens as a safe-haven bid.' },
-  { id: 'dual',       name: 'Dual chokepoint crisis',            shortDesc: 'Houthis resume Red Sea attacks + Hormuz closure',  baseProb: 0.06, color: '#A32D2D', narrative: 'The worst supply-chain scenario materialises: Hormuz remains closed while Houthis resume active Red Sea attacks. Global shipping faces simultaneous disruption at two critical chokepoints. Oil surges past $150/bbl, equities enter a bear market, and gold spikes as a systemic hedge.' },
-  { id: 'trump_exit', name: 'Trump declares victory / exits',    shortDesc: 'US draws down unilaterally; no deal; Iran rebuilds',baseProb: 0.13, color: '#888780', narrative: 'Trump declares a political victory and draws down US engagement without a comprehensive deal. Iran quietly rebuilds its capabilities. Oil eases as immediate conflict risk falls, equities recover modestly, but the medium-term overhang of unresolved nuclear ambiguity caps the rally.' },
-  { id: 'collapse',   name: 'Iranian regime fractures',          shortDesc: 'Internal collapse; nuclear material uncertainty',   baseProb: 0.06, color: '#534AB7', narrative: 'Internal fractures within the regime — whether from popular unrest or IRGC splits — lead to a loss of centralised control. The immediate energy disruption eases as military posture fragments, but nuclear material security becomes a global concern. Markets rally on lower oil but hedging demand for gold rises.' },
-  { id: 'breakout',   name: 'Nuclear breakout',                  shortDesc: 'Iran weaponises under IAEA blackout',              baseProb: 0.04, color: '#791F1F', narrative: 'Iran achieves nuclear weapons capability under an IAEA monitoring blackout. This triggers a severe geopolitical re-rating: Saudi Arabia accelerates its own programme, Israel considers pre-emptive action, and the US faces a strategic crisis. Equities sell off violently, gold surges past $6,000, and oil spikes on fears of regional escalation.' },
+  {
+    id: 'deal',
+    name: 'Diplomatic deal',
+    shortDesc: 'Full Hormuz reopening + nuclear agreement',
+    tooltipDesc: 'Iran agrees to verifiable nuclear limits in exchange for phased sanctions relief. Hormuz reopens fully, shipping normalises, and risk premiums evaporate across energy and financial markets.',
+    baseProb: 0.11,
+    color: '#1D9E75',
+    narrative: 'A comprehensive deal is reached. Iran agrees to verifiable nuclear limits in exchange for phased sanctions relief. The Strait of Hormuz reopens fully, shipping normalises within weeks, and Brent crude drops sharply as the risk premium evaporates. Equities rally on the removal of tail risk.',
+  },
+  {
+    id: 'frozen',
+    name: 'Frozen conflict',
+    shortDesc: 'Ceasefire holds but no settlement',
+    tooltipDesc: 'The ceasefire holds but neither side moves toward a comprehensive settlement. Hormuz remains partially restricted. Markets settle into an elevated but stable risk-premium regime.',
+    baseProb: 0.28,
+    color: '#3266AD',
+    narrative: 'The ceasefire holds but neither side moves toward a comprehensive settlement. Hormuz remains partially restricted. Oil prices settle into an elevated range, equities drift modestly higher as the worst-case fades, and investors price in a prolonged stalemate.',
+  },
+  {
+    id: 'resumed',
+    name: 'Ceasefire collapses',
+    shortDesc: 'Limited war resumes; Hormuz re-closes',
+    tooltipDesc: 'The ceasefire breaks down, likely triggered by Israel\'s exclusion of Lebanon from the deal. Iran re-closes Hormuz. Oil spikes, equities sell off, and safe-haven assets rally.',
+    baseProb: 0.22,
+    color: '#E9AB2E',
+    narrative: 'The ceasefire breaks down, likely triggered by Israel\'s exclusion of Lebanon from the deal. Iran re-closes the Strait of Hormuz. Oil spikes above $120/bbl as supply disruptions cascade through refinery markets. Equities sell off sharply and treasury yields whipsaw.',
+  },
+  {
+    id: 'hormuz',
+    name: 'Prolonged Hormuz closure',
+    shortDesc: '6–12 month Strait disruption',
+    tooltipDesc: 'Iran maintains prolonged closure or a managed toll system on the Strait for 6–12 months. Oil sustains above $110/bbl, global growth is revised down, and central banks face stagflationary pressure.',
+    baseProb: 0.16,
+    color: '#D85A30',
+    narrative: 'Iran maintains a prolonged closure or managed toll system on the Strait. The disruption persists for 6–12 months. Oil sustains above $110/bbl, global growth estimates are revised down, and central banks face a stagflationary dilemma. The dollar strengthens as a safe-haven bid.',
+  },
+  {
+    id: 'dual',
+    name: 'Dual chokepoint crisis',
+    shortDesc: 'Hormuz + Red Sea both disrupted',
+    tooltipDesc: 'The worst supply-chain scenario: Hormuz closed while Houthis resume Red Sea attacks. ~35% of global seaborne oil faces simultaneous disruption. Oil surges past $150/bbl, equities enter bear-market territory.',
+    baseProb: 0.06,
+    color: '#A32D2D',
+    narrative: 'The worst supply-chain scenario materialises: Hormuz remains closed while Houthis resume active Red Sea attacks. Global shipping faces simultaneous disruption at two critical chokepoints. Oil surges past $150/bbl, equities enter a bear market, and gold spikes as a systemic hedge.',
+  },
+  {
+    id: 'trump_exit',
+    name: 'US withdrawal',
+    shortDesc: 'Trump declares victory; no deal; Iran rebuilds',
+    tooltipDesc: 'Trump declares a political victory and withdraws US engagement without a deal. Iran quietly rebuilds capabilities. Immediate risk falls but medium-term nuclear ambiguity caps recovery.',
+    baseProb: 0.13,
+    color: '#888780',
+    narrative: 'Trump declares a political victory and draws down US engagement without a comprehensive deal. Iran quietly rebuilds its capabilities. Oil eases as immediate conflict risk falls, equities recover modestly, but the medium-term overhang of unresolved nuclear ambiguity caps the rally.',
+  },
+  {
+    id: 'collapse',
+    name: 'Regime fractures',
+    shortDesc: 'Internal collapse; nuclear material uncertainty',
+    tooltipDesc: 'Internal regime fractures from popular unrest or IRGC splits lead to loss of centralised control. Energy disruption eases but nuclear material security becomes a global concern.',
+    baseProb: 0.06,
+    color: '#534AB7',
+    narrative: 'Internal fractures within the regime — whether from popular unrest or IRGC splits — lead to a loss of centralised control. The immediate energy disruption eases as military posture fragments, but nuclear material security becomes a global concern. Markets rally on lower oil but hedging demand for gold rises.',
+  },
+  {
+    id: 'breakout',
+    name: 'Nuclear breakout',
+    shortDesc: 'Iran weaponises; severe geopolitical re-rating',
+    tooltipDesc: 'Iran achieves nuclear weapons capability under an IAEA monitoring blackout. Triggers Saudi proliferation, potential Israeli pre-emption, and a severe re-rating of geopolitical risk across all asset classes.',
+    baseProb: 0.04,
+    color: '#791F1F',
+    narrative: 'Iran achieves nuclear weapons capability under an IAEA monitoring blackout. This triggers a severe geopolitical re-rating: Saudi Arabia accelerates its own programme, Israel considers pre-emptive action, and the US faces a strategic crisis. Equities sell off violently, gold surges past $6,000, and oil spikes on fears of regional escalation.',
+  },
 ];
 
 export const SCENARIO_MAP = Object.fromEntries(SCENARIOS.map(s => [s.id, s])) as Record<ScenarioId, Scenario>;
@@ -32,15 +97,6 @@ export const SCENARIO_IDS = SCENARIOS.map(s => s.id);
 // --- SPECTRUM SIGNAL DEFINITIONS ---
 export type SignalId = 'trump_war' | 'trump_leb' | 'iran_nuke' | 'iran_strait' | 'iran_regime' | 'israel_leb' | 'china' | 'houthi' | 'market';
 
-/**
- * Each signal is now a bipolar spectrum with a single slider (0–100).
- * - `leftLabel` / `rightLabel`: the two poles
- * - `centerLabel`: optional label for the midpoint (3-option signals)
- * - `anchors`: the original option values at each anchor point
- *   For 2-option signals: [left, right] (slider 0→left, 100→right)
- *   For 3-option signals: [left, center, right] (slider 0→left, 50→center, 100→right)
- * - Engine interpolates weights between adjacent anchors based on slider position.
- */
 export interface Signal {
   id: SignalId;
   actor: string;
@@ -50,7 +106,7 @@ export interface Signal {
   leftLabel: string;
   rightLabel: string;
   centerLabel?: string;
-  anchors: string[]; // 2 or 3 option values from the weight matrix
+  anchors: string[];
 }
 
 export const SIGNALS: Signal[] = [
@@ -155,8 +211,6 @@ export const SIGNALS: Signal[] = [
 export const SIGNAL_MAP = Object.fromEntries(SIGNALS.map(s => [s.id, s])) as Record<SignalId, Signal>;
 
 // --- WEIGHT MATRIX (unchanged from v3) ---
-// Each signal → option → scenario impact in percentage-point units.
-// The engine interpolates between anchor points based on slider position.
 type WeightMatrix = Record<string, Record<string, Partial<Record<ScenarioId, number>>>>;
 
 export const WEIGHTS: WeightMatrix = {
@@ -205,7 +259,8 @@ export const WEIGHTS: WeightMatrix = {
 };
 
 // --- MARKET IMPACT DATA ---
-export type AssetId = 'oil' | 'sp500' | 'treasury' | 'dxy' | 'gold';
+// v7: New asset classes — real-world indices
+export type AssetId = 'brent' | 'gold' | 'govbond' | 'credit' | 'dm_eq' | 'em_eq' | 'usd';
 
 export interface AssetRange {
   lo: number;
@@ -223,25 +278,106 @@ export interface AssetDef {
   formatShort: (v: number) => string;
 }
 
+// Current values as of Apr 2026 (estimated)
 export const ASSETS: AssetDef[] = [
-  { id: 'oil',      name: 'Brent Crude',       unit: '$/bbl',  currentValue: 97,    format: (v) => `$${v.toFixed(0)}/bbl`,  formatShort: (v) => `$${v.toFixed(0)}` },
-  { id: 'sp500',    name: 'S&P 500',           unit: '%',       currentValue: 6783,  format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`, formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
-  { id: 'treasury', name: '10Y Treasury',      unit: '%',       currentValue: 4.28,  format: (v) => `${v.toFixed(2)}%`,      formatShort: (v) => `${v.toFixed(2)}%` },
-  { id: 'dxy',      name: 'USD Index (DXY)',   unit: 'pts',     currentValue: 99,    format: (v) => v.toFixed(1),            formatShort: (v) => v.toFixed(0) },
-  { id: 'gold',     name: 'Gold',              unit: '$/oz',    currentValue: 4750,  format: (v) => `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, formatShort: (v) => `$${(v/1000).toFixed(1)}k` },
+  { id: 'brent',   name: 'Brent Crude',       unit: '$/bbl',  currentValue: 97,    format: (v) => `$${v.toFixed(0)}/bbl`,  formatShort: (v) => `$${v.toFixed(0)}` },
+  { id: 'gold',    name: 'Gold',              unit: '$/oz',    currentValue: 4750,  format: (v) => `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,  formatShort: (v) => `$${(v/1000).toFixed(1)}k` },
+  { id: 'govbond', name: 'Gov Bonds',         unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
+  { id: 'credit',  name: 'Credit',            unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
+  { id: 'dm_eq',   name: 'DM Equities',       unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
+  { id: 'em_eq',   name: 'EM Equities',       unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
+  { id: 'usd',     name: 'USD Basket',        unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
 ];
 
 export const ASSET_MAP = Object.fromEntries(ASSETS.map(a => [a.id, a])) as Record<AssetId, AssetDef>;
 
+/**
+ * MARKET_IMPACT — Scenario-conditional expected outcomes for each asset over a 3–12 month horizon.
+ *
+ * Brent & Gold: absolute price levels ($/bbl, $/oz).
+ * Gov Bonds (FTSE World Government Bond Index): total return % — reflects yield moves + duration.
+ * Credit (Global IG Corporate Index): excess return % vs. govs — reflects spread moves.
+ * DM Equities (MSCI World): total return % from current levels.
+ * EM Equities (MSCI EM): total return % from current levels.
+ * USD Basket (DXY-type): % change from current (positive = stronger dollar).
+ *
+ * These are editorial estimates informed by historical conflict-era market moves,
+ * geopolitical risk premia research, and scenario-specific supply/demand analysis.
+ * They are not investment recommendations.
+ */
 export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
-  deal:       { oil: { lo: 65, mid: 72, hi: 80, direction: 'Strongly bearish' }, sp500: { lo: 8, mid: 11, hi: 14, direction: 'Bullish' }, treasury: { lo: 3.90, mid: 4.05, hi: 4.20, direction: 'Lower yields' }, dxy: { lo: 94, mid: 96, hi: 98, direction: 'Weakens' }, gold: { lo: 4200, mid: 4350, hi: 4550, direction: 'Bearish' } },
-  frozen:     { oil: { lo: 80, mid: 90, hi: 97, direction: 'Bearish vs. peak' }, sp500: { lo: 2, mid: 4, hi: 7, direction: 'Modestly bullish' }, treasury: { lo: 4.15, mid: 4.28, hi: 4.45, direction: 'Range-bound' }, dxy: { lo: 97, mid: 99, hi: 101, direction: 'Stable' }, gold: { lo: 4600, mid: 4750, hi: 4950, direction: 'Stable' } },
-  resumed:    { oil: { lo: 110, mid: 120, hi: 130, direction: 'Bullish' }, sp500: { lo: -12, mid: -8, hi: -5, direction: 'Bearish' }, treasury: { lo: 3.90, mid: 4.20, hi: 4.55, direction: 'Mixed' }, dxy: { lo: 100, mid: 102, hi: 104, direction: 'Strengthens' }, gold: { lo: 5000, mid: 5150, hi: 5400, direction: 'Bullish' } },
-  hormuz:     { oil: { lo: 105, mid: 115, hi: 125, direction: 'Strongly bullish' }, sp500: { lo: -18, mid: -13, hi: -8, direction: 'Strongly bearish' }, treasury: { lo: 3.80, mid: 4.35, hi: 4.80, direction: 'Mixed' }, dxy: { lo: 102, mid: 105, hi: 108, direction: 'Strongly strengthens' }, gold: { lo: 5200, mid: 5500, hi: 5900, direction: 'Strongly bullish' } },
-  dual:       { oil: { lo: 150, mid: 165, hi: 180, direction: 'Extreme bullish' }, sp500: { lo: -30, mid: -23, hi: -16, direction: 'Extreme bearish' }, treasury: { lo: 3.50, mid: 4.00, hi: 5.00, direction: 'Extreme mixed' }, dxy: { lo: 105, mid: 108, hi: 112, direction: 'Extreme strengthening' }, gold: { lo: 5800, mid: 6400, hi: 7000, direction: 'Extreme bullish' } },
-  trump_exit: { oil: { lo: 70, mid: 77, hi: 85, direction: 'Bearish' }, sp500: { lo: 4, mid: 7, hi: 10, direction: 'Bullish' }, treasury: { lo: 4.00, mid: 4.15, hi: 4.30, direction: 'Modestly lower' }, dxy: { lo: 95, mid: 97, hi: 99, direction: 'Weakens' }, gold: { lo: 4300, mid: 4500, hi: 4700, direction: 'Modestly bearish' } },
-  collapse:   { oil: { lo: 60, mid: 70, hi: 80, direction: 'Strongly bearish' }, sp500: { lo: 3, mid: 7, hi: 12, direction: 'Bullish' }, treasury: { lo: 4.00, mid: 4.30, hi: 4.60, direction: 'Mixed' }, dxy: { lo: 97, mid: 100, hi: 104, direction: 'Volatile' }, gold: { lo: 4800, mid: 5100, hi: 5500, direction: 'Bullish' } },
-  breakout:   { oil: { lo: 100, mid: 115, hi: 130, direction: 'Bullish' }, sp500: { lo: -25, mid: -18, hi: -12, direction: 'Strongly bearish' }, treasury: { lo: 3.50, mid: 4.50, hi: 5.00, direction: 'Volatile' }, dxy: { lo: 103, mid: 106, hi: 110, direction: 'Strongly strengthens' }, gold: { lo: 5800, mid: 6500, hi: 8000, direction: 'Extreme bullish' } },
+  deal: {
+    brent:   { lo: 65, mid: 72, hi: 80, direction: 'Strongly bearish' },
+    gold:    { lo: 4200, mid: 4350, hi: 4550, direction: 'Bearish' },
+    govbond: { lo: 1, mid: 3, hi: 5, direction: 'Rally (yields fall)' },
+    credit:  { lo: 1, mid: 3, hi: 5, direction: 'Spreads tighten sharply' },
+    dm_eq:   { lo: 8, mid: 12, hi: 16, direction: 'Strong rally' },
+    em_eq:   { lo: 10, mid: 15, hi: 20, direction: 'Strong rally' },
+    usd:     { lo: -4, mid: -2, hi: 0, direction: 'Weakens (risk-on)' },
+  },
+  frozen: {
+    brent:   { lo: 80, mid: 90, hi: 97, direction: 'Bearish vs. peak' },
+    gold:    { lo: 4600, mid: 4750, hi: 4950, direction: 'Stable' },
+    govbond: { lo: -1, mid: 1, hi: 2, direction: 'Modest rally' },
+    credit:  { lo: 0, mid: 1, hi: 2, direction: 'Stable to modest tightening' },
+    dm_eq:   { lo: 2, mid: 5, hi: 8, direction: 'Modestly positive' },
+    em_eq:   { lo: 0, mid: 3, hi: 7, direction: 'Modestly positive' },
+    usd:     { lo: -1, mid: 0, hi: 2, direction: 'Stable' },
+  },
+  resumed: {
+    brent:   { lo: 110, mid: 120, hi: 130, direction: 'Bullish' },
+    gold:    { lo: 5000, mid: 5150, hi: 5400, direction: 'Bullish' },
+    govbond: { lo: -2, mid: 1, hi: 4, direction: 'Mixed (flight-to-quality vs. inflation)' },
+    credit:  { lo: -6, mid: -3, hi: -1, direction: 'Spreads widen' },
+    dm_eq:   { lo: -14, mid: -9, hi: -5, direction: 'Bearish' },
+    em_eq:   { lo: -18, mid: -12, hi: -7, direction: 'Bearish' },
+    usd:     { lo: 2, mid: 4, hi: 6, direction: 'Strengthens (safe haven)' },
+  },
+  hormuz: {
+    brent:   { lo: 105, mid: 115, hi: 125, direction: 'Strongly bullish' },
+    gold:    { lo: 5200, mid: 5500, hi: 5900, direction: 'Strongly bullish' },
+    govbond: { lo: -3, mid: 0, hi: 3, direction: 'Volatile — stagflation dilemma' },
+    credit:  { lo: -8, mid: -5, hi: -2, direction: 'Spreads widen significantly' },
+    dm_eq:   { lo: -20, mid: -14, hi: -8, direction: 'Strongly bearish' },
+    em_eq:   { lo: -25, mid: -18, hi: -10, direction: 'Strongly bearish' },
+    usd:     { lo: 3, mid: 6, hi: 9, direction: 'Strongly strengthens' },
+  },
+  dual: {
+    brent:   { lo: 150, mid: 165, hi: 180, direction: 'Extreme bullish' },
+    gold:    { lo: 5800, mid: 6400, hi: 7000, direction: 'Extreme bullish' },
+    govbond: { lo: -5, mid: -1, hi: 4, direction: 'Extreme volatility' },
+    credit:  { lo: -15, mid: -10, hi: -6, direction: 'Crisis-level spread widening' },
+    dm_eq:   { lo: -32, mid: -24, hi: -16, direction: 'Bear market' },
+    em_eq:   { lo: -40, mid: -30, hi: -20, direction: 'Severe bear market' },
+    usd:     { lo: 5, mid: 9, hi: 13, direction: 'Strong safe-haven bid' },
+  },
+  trump_exit: {
+    brent:   { lo: 70, mid: 77, hi: 85, direction: 'Bearish' },
+    gold:    { lo: 4300, mid: 4500, hi: 4700, direction: 'Modestly bearish' },
+    govbond: { lo: 0, mid: 2, hi: 3, direction: 'Modest rally' },
+    credit:  { lo: 0, mid: 2, hi: 3, direction: 'Modest tightening' },
+    dm_eq:   { lo: 4, mid: 7, hi: 11, direction: 'Positive' },
+    em_eq:   { lo: 3, mid: 6, hi: 10, direction: 'Positive' },
+    usd:     { lo: -3, mid: -1, hi: 1, direction: 'Modestly weaker' },
+  },
+  collapse: {
+    brent:   { lo: 60, mid: 70, hi: 80, direction: 'Strongly bearish' },
+    gold:    { lo: 4800, mid: 5100, hi: 5500, direction: 'Bullish (nuclear uncertainty)' },
+    govbond: { lo: 0, mid: 2, hi: 4, direction: 'Rally on lower oil' },
+    credit:  { lo: -2, mid: 1, hi: 3, direction: 'Mixed' },
+    dm_eq:   { lo: 3, mid: 8, hi: 13, direction: 'Positive (energy relief)' },
+    em_eq:   { lo: 2, mid: 7, hi: 12, direction: 'Positive' },
+    usd:     { lo: -2, mid: 1, hi: 4, direction: 'Volatile' },
+  },
+  breakout: {
+    brent:   { lo: 100, mid: 115, hi: 130, direction: 'Bullish' },
+    gold:    { lo: 5800, mid: 6500, hi: 8000, direction: 'Extreme bullish' },
+    govbond: { lo: -4, mid: 0, hi: 5, direction: 'Extreme volatility' },
+    credit:  { lo: -12, mid: -7, hi: -3, direction: 'Sharp spread widening' },
+    dm_eq:   { lo: -28, mid: -20, hi: -12, direction: 'Strongly bearish' },
+    em_eq:   { lo: -35, mid: -25, hi: -15, direction: 'Strongly bearish' },
+    usd:     { lo: 4, mid: 7, hi: 11, direction: 'Strongly strengthens' },
+  },
 };
 
 // --- NARRATIVE TEMPLATES FOR MARKET COMMENTARY ---
@@ -249,9 +385,9 @@ export const MARKET_COMMENTARY: Record<string, (values: Record<string, string>) 
   oil_high: ({ price }) => `Brent crude is expected at ${price}, reflecting sustained supply disruption through the Strait of Hormuz and elevated risk premiums in tanker insurance markets.`,
   oil_low: ({ price }) => `Brent crude is expected to ease toward ${price} as the risk premium dissipates and Strait transit normalises, restoring approximately 20m bbl/day of flow capacity.`,
   oil_mid: ({ price }) => `Brent crude is expected around ${price}, trading in an elevated but stable range as partial Strait restrictions maintain a moderate risk premium.`,
-  equity_bearish: ({ pct }) => `The S&P 500 is expected to decline ${pct} over 3–12 months, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
-  equity_bullish: ({ pct }) => `The S&P 500 is expected to gain ${pct} as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
-  equity_flat: ({ pct }) => `The S&P 500 is expected to move ${pct}, reflecting an uneasy balance between persistent geopolitical risk and the market\'s ability to price in a prolonged stalemate.`,
+  equity_bearish: ({ pct }) => `Developed market equities are expected to decline ${pct}, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
+  equity_bullish: ({ pct }) => `Developed market equities are expected to gain ${pct} as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
+  equity_flat: ({ pct }) => `Developed market equities are expected to move ${pct}, reflecting an uneasy balance between persistent geopolitical risk and the market's ability to price in a prolonged stalemate.`,
   gold_high: ({ price }) => `Gold is expected at ${price}, driven by safe-haven demand, central bank accumulation, and hedging against tail-risk scenarios including nuclear escalation.`,
   gold_low: ({ price }) => `Gold is expected around ${price}, moderating from peak levels as de-escalation reduces the systemic risk premium that drove the recent rally.`,
 };

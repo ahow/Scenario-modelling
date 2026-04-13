@@ -172,25 +172,25 @@ export function generateNarrative(
 
   let marketNarrative = '';
   if (movedCount > 0) {
-    const oil = market.oil.mid;
-    const sp = market.sp500.mid;
+    const oil = market.brent.mid;
+    const dm = market.dm_eq.mid;
     const gold = market.gold.mid;
 
     if (oil > 110) {
-      marketNarrative += MARKET_COMMENTARY.oil_high({ price: ASSET_MAP.oil.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_high({ price: ASSET_MAP.brent.format(oil) });
     } else if (oil < 85) {
-      marketNarrative += MARKET_COMMENTARY.oil_low({ price: ASSET_MAP.oil.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_low({ price: ASSET_MAP.brent.format(oil) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.oil_mid({ price: ASSET_MAP.oil.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_mid({ price: ASSET_MAP.brent.format(oil) });
     }
 
     marketNarrative += ' ';
-    if (sp < -5) {
-      marketNarrative += MARKET_COMMENTARY.equity_bearish({ pct: ASSET_MAP.sp500.format(sp) });
-    } else if (sp > 5) {
-      marketNarrative += MARKET_COMMENTARY.equity_bullish({ pct: ASSET_MAP.sp500.format(sp) });
+    if (dm < -5) {
+      marketNarrative += MARKET_COMMENTARY.equity_bearish({ pct: ASSET_MAP.dm_eq.format(dm) });
+    } else if (dm > 5) {
+      marketNarrative += MARKET_COMMENTARY.equity_bullish({ pct: ASSET_MAP.dm_eq.format(dm) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.equity_flat({ pct: ASSET_MAP.sp500.format(sp) });
+      marketNarrative += MARKET_COMMENTARY.equity_flat({ pct: ASSET_MAP.dm_eq.format(dm) });
     }
 
     marketNarrative += ' ';
