@@ -133,12 +133,10 @@ function buildPortfolioKdeCurve(
     return { sid, lo, mid, hi };
   });
 
+  // X-axis is now % change from baseline (same as individual assets)
   const kernels = scenarioReturns.map(sr => {
-    const muRebased = 100 + sr.mid;
-    const loRebased = 100 + sr.lo;
-    const hiRebased = 100 + sr.hi;
-    const sigma = Math.max((hiRebased - loRebased) / 2, 0.01);
-    return { mu: muRebased, sigma, weight: probs[sr.sid] };
+    const sigma = Math.max((sr.hi - sr.lo) / 2, 0.01);
+    return { mu: sr.mid, sigma, weight: probs[sr.sid] };
   });
 
   let xMin = Infinity;
@@ -167,12 +165,13 @@ function buildPortfolioKdeCurve(
   return points;
 }
 
+/** Returns portfolio expected outcome as % change from baseline (weighted blend of asset % changes). */
 function computePortfolioExpected(
   probs: Record<ScenarioId, number>,
   weights: Record<PortfolioAssetId, number>,
 ): { lo: number; mid: number; hi: number } {
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  if (totalWeight === 0) return { lo: 100, mid: 100, hi: 100 };
+  if (totalWeight === 0) return { lo: 0, mid: 0, hi: 0 };
 
   let wLo = 0, wMid = 0, wHi = 0;
   for (const sid of SCENARIO_IDS) {
@@ -190,7 +189,7 @@ function computePortfolioExpected(
     wHi += p * sHi;
   }
 
-  return { lo: 100 + wLo, mid: 100 + wMid, hi: 100 + wHi };
+  return { lo: wLo, mid: wMid, hi: wHi };
 }
 
 interface MarketImpactChartProps {
@@ -229,45 +228,53 @@ export const MarketImpactChart = memo(function MarketImpactChart({
   }, [isPortfolio, currentProbs, portfolioWeights]);
 
   const expectedFromBaseline = isPortfolio
-    ? (portfolioExpected?.mid ?? 100)
+    ? (portfolioExpected?.mid ?? 0)
     : (wm?.mid ?? 0);
 
   // Current market level as % from baseline (live data or fallback)
-  const currentPct = isPortfolio ? null : (
+  // For portfolio: weighted blend of individual asset current % from baseline
+  const currentPctSingle = isPortfolio ? null : (
     liveQuotes?.pctFromBaseline[selectedAsset] ??
     pctFromBaseline(selectedAsset, FALLBACK_PRICES[selectedAsset])
   );
-  const hasCurrentLine = true; // always show: current level for assets, Base(100) for portfolio
+
+  const portfolioCurrentPct = useMemo(() => {
+    if (!isPortfolio || !portfolioWeights) return 0;
+    const totalWeight = Object.values(portfolioWeights).reduce((a, b) => a + b, 0);
+    if (totalWeight === 0) return 0;
+    let weighted = 0;
+    for (const pa of PORTFOLIO_ASSETS) {
+      const w = (portfolioWeights[pa.id] || 0) / totalWeight;
+      if (pa.id === 'cash') continue; // cash = 0% from baseline
+      const assetId = pa.id as AssetId;
+      const pct = liveQuotes?.pctFromBaseline[assetId] ??
+        pctFromBaseline(assetId, FALLBACK_PRICES[assetId]);
+      weighted += w * pct;
+    }
+    return weighted;
+  }, [isPortfolio, portfolioWeights, liveQuotes]);
+
+  const currentPct = isPortfolio ? portfolioCurrentPct : currentPctSingle;
+  const hasCurrentLine = true; // always show: current level for assets, current weighted level for portfolio
 
   // Expected % change from CURRENT levels (not baseline)
   // If baseline → current = +C%, and baseline → expected = +E%, then current → expected = (1+E/100)/(1+C/100) - 1
-  const expectedFromCurrent = isPortfolio
-    ? (portfolioExpected?.mid ?? 100) // portfolio stays rebased to 100
-    : currentPct !== null
-      ? ((1 + (wm?.mid ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
-      : (wm?.mid ?? 0);
+  const expectedFromCurrent = currentPct !== null
+    ? ((1 + expectedFromBaseline / 100) / (1 + currentPct / 100) - 1) * 100
+    : expectedFromBaseline;
 
-  const formatTick = (v: number) => {
-    if (isPortfolio) return v.toFixed(0);
-    return fmtPct(v);
-  };
-
-  const formatShortValue = (v: number) => {
-    if (isPortfolio) return v.toFixed(1);
-    return fmtPct(v);
-  };
+  const formatTick = (v: number) => fmtPct(v);
+  const formatShortValue = (v: number) => fmtPct(v);
 
   // Range from current levels
-  const expectedLoFromCurrent = isPortfolio
-    ? (portfolioExpected?.lo ?? 100)
-    : currentPct !== null
-      ? ((1 + (wm?.lo ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
-      : (wm?.lo ?? 0);
-  const expectedHiFromCurrent = isPortfolio
-    ? (portfolioExpected?.hi ?? 100)
-    : currentPct !== null
-      ? ((1 + (wm?.hi ?? 0) / 100) / (1 + currentPct / 100) - 1) * 100
-      : (wm?.hi ?? 0);
+  const loFromBaseline = isPortfolio ? (portfolioExpected?.lo ?? 0) : (wm?.lo ?? 0);
+  const hiFromBaseline = isPortfolio ? (portfolioExpected?.hi ?? 0) : (wm?.hi ?? 0);
+  const expectedLoFromCurrent = currentPct !== null
+    ? ((1 + loFromBaseline / 100) / (1 + currentPct / 100) - 1) * 100
+    : loFromBaseline;
+  const expectedHiFromCurrent = currentPct !== null
+    ? ((1 + hiFromBaseline / 100) / (1 + currentPct / 100) - 1) * 100
+    : hiFromBaseline;
 
   const displayName = isPortfolio ? 'Portfolio' : asset!.name;
 
@@ -277,7 +284,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     return (
       <div className="bg-background border border-border rounded-lg shadow-lg p-2.5">
         <div className="text-[12px] font-semibold tabular-nums">
-          {isPortfolio ? pt.x.toFixed(1) : fmtPct(pt.x)}
+          {fmtPct(pt.x)}
         </div>
         <div className="text-[10px] text-muted-foreground">
           Relative density: {(pt.density * 100).toFixed(1)}
@@ -286,7 +293,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     );
   };
 
-  const currentLineValue = isPortfolio ? 100 : (currentPct ?? 0);
+  const currentLineValue = currentPct ?? 0;
 
   return (
     <div data-testid="market-impact-chart">
@@ -325,7 +332,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
         <div className="flex items-baseline gap-3">
           <span className="text-[11px] text-muted-foreground">
             Expected: <span className="font-bold tabular-nums text-[14px] text-foreground">{formatShortValue(expectedFromCurrent)}</span>
-            {!isPortfolio && <span className="text-[10px] text-muted-foreground ml-0.5">from current</span>}
+            <span className="text-[10px] text-muted-foreground ml-0.5">from current</span>
           </span>
           <span className="text-[10px] text-muted-foreground tabular-nums">
             ({formatShortValue(expectedLoFromCurrent)} – {formatShortValue(expectedHiFromCurrent)})
@@ -359,14 +366,14 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             {hasCurrentLine && (
               <ReferenceLine
                 x={currentLineValue}
-                stroke={isPortfolio ? 'hsl(var(--muted-foreground))' : '#0074B7'}
+                stroke="#0074B7"
                 strokeWidth={2}
                 strokeDasharray="4 3"
                 label={{
-                  value: isPortfolio ? 'Base (100)' : `Current: ${fmtPct(currentPct!)}`,
+                  value: `Current: ${fmtPct(currentPct ?? 0)}`,
                   position: 'insideTopRight',
                   fontSize: 11,
-                  fill: isPortfolio ? 'hsl(var(--muted-foreground))' : '#0074B7',
+                  fill: '#0074B7',
                   fontWeight: 600,
                 }}
               />
@@ -379,7 +386,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
               strokeWidth={2.5}
               strokeDasharray="6 3"
               label={{
-                value: `Expected: ${formatShortValue(expectedFromCurrent)}${isPortfolio ? '' : ' from current'}`,
+                value: `Expected: ${formatShortValue(expectedFromCurrent)} from current`,
                 position: 'top',
                 fontSize: 11,
                 fill: 'hsl(var(--foreground))',
@@ -407,8 +414,8 @@ export const MarketImpactChart = memo(function MarketImpactChart({
         </div>
         {hasCurrentLine && (
           <div className="flex items-center gap-1.5">
-            <span className="w-5 h-[2px] rounded-full inline-block" style={{ backgroundImage: isPortfolio ? 'repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0, hsl(var(--muted-foreground)) 3px, transparent 3px, transparent 6px)' : 'repeating-linear-gradient(90deg, #0074B7 0, #0074B7 3px, transparent 3px, transparent 6px)' }} />
-            {isPortfolio ? 'Base level (100)' : 'Current level (live)'}
+            <span className="w-5 h-[2px] rounded-full inline-block" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #0074B7 0, #0074B7 3px, transparent 3px, transparent 6px)' }} />
+            Current level (live)
           </div>
         )}
         <div className="flex items-center gap-1.5">
@@ -419,7 +426,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
       <p className="text-[10px] text-muted-foreground/60 leading-relaxed mt-2">
         {isPortfolio
-          ? 'The curve shows the probability-weighted distribution of portfolio outcomes, rebased to 100. Each scenario contributes a blended return computed from your allocation weights across all asset classes. Cash contributes 0%. Editorial estimates.'
+          ? 'The X-axis shows weighted % change from the pre-war baseline (3-month avg, Nov 2025 – Feb 2026), blended across your allocation. The "Current" line marks the weighted average of today\'s market levels. Expected values are expressed as % change from current levels. Cash contributes 0%. Editorial estimates.'
           : <>The X-axis shows % change from the pre-war baseline (3-month avg, Nov 2025 – Feb 2026) using ETF proxies ({asset!.ticker}).
             The "Current" line marks today's market level. Expected values in the header are expressed as % change from current levels.
             The distribution shows the probability-weighted range of scenario outcomes. Editorial estimates.</>
@@ -427,9 +434,9 @@ export const MarketImpactChart = memo(function MarketImpactChart({
       </p>
 
       {/* Data source badge */}
-      {liveQuotes && !isPortfolio && (
+      {liveQuotes && (
         <div className="mt-1.5 text-[9px] text-muted-foreground/40">
-          Market data: {liveQuotes.source === 'live' ? 'Live' : 'Fallback'} via FMP ({asset!.ticker}) · {new Date(liveQuotes.timestamp).toLocaleTimeString()}
+          Market data: {liveQuotes.source === 'live' ? 'Live' : 'Fallback'} via FMP{!isPortfolio && ` (${asset!.ticker})`} · {new Date(liveQuotes.timestamp).toLocaleTimeString()}
         </div>
       )}
     </div>
