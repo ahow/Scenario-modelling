@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, RotateCcw, Cpu } from "lucide-react";
 import { SchrodersLogo } from "./components/SchrodersLogo";
 import { MarketStrip } from "./components/MarketStrip";
-import { ScenarioBar } from "./components/ScenarioBar";
 import { DecisionCard, type AnchorMarker } from "./components/DecisionCard";
 import { NarrativePanel } from "./components/NarrativePanel";
 import { ScenarioDrawer } from "./components/ScenarioDrawer";
@@ -51,7 +50,7 @@ export default function App() {
   const [dark, setDark] = useState(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
-  const [activeTab, setActiveTab] = useState<TabId>('results');
+  const [activeTab, setActiveTab] = useState<TabId>('about');
 
   const briefingAnchorsInit = getBriefingAnchors();
   const [states, setStates] = useState<AllSignalStates>(() =>
@@ -194,9 +193,9 @@ export default function App() {
   }, []);
 
   const tabs: { id: TabId; label: string }[] = [
+    { id: 'about', label: 'How It Works' },
     { id: 'decisions', label: 'Decisions' },
     { id: 'results', label: 'Results' },
-    { id: 'about', label: 'How It Works' },
   ];
 
   return (
@@ -248,8 +247,17 @@ export default function App() {
       {/* ===== TAB: DECISIONS ===== */}
       {activeTab === 'decisions' && (
         <main className="max-w-[1104px] mx-auto px-4 sm:px-6 pb-8">
+          {/* Page intro */}
+          <div className="pt-4 pb-3">
+            <p className="text-[14px] leading-relaxed text-foreground/80">
+              Each slider below represents a key decision by a major actor in the conflict.
+              Drag it toward the outcome you think is more likely — the model will
+              update the scenario probabilities and market impacts in the Results tab.
+            </p>
+          </div>
+
           {/* Briefing — collapsed by default */}
-          <div className="pt-4 pb-2">
+          <div className="pb-2">
             <BriefingPanel
               briefing={briefing}
               briefingAge={briefingAge}
@@ -369,8 +377,17 @@ export default function App() {
       {/* ===== TAB: RESULTS ===== */}
       {activeTab === 'results' && (
         <main className="max-w-[1104px] mx-auto px-4 sm:px-6 pb-8">
+          {/* Page intro */}
+          <div className="pt-4 pb-3">
+            <p className="text-[14px] leading-relaxed text-foreground/80">
+              Based on your current assumptions, here is the model's assessment of
+              scenario probabilities and expected market impacts over a 3–12 month horizon.
+              Adjust your assumptions in the Decisions tab to see how the outlook changes.
+            </p>
+          </div>
+
           {/* Market strip summary */}
-          <div className="pt-3 pb-2 border-b border-border/30 mb-4">
+          <div className="pb-2 border-b border-border/30 mb-4">
             <MarketStrip weightedMarket={weightedMarket} />
           </div>
 
@@ -393,15 +410,6 @@ export default function App() {
             <ScenarioProbChart
               currentProbs={currentProbs}
               baselineProbs={baselineProbs}
-            />
-          </div>
-
-          {/* Scenario bar (compact) */}
-          <div className="mb-4">
-            <ScenarioBar
-              currentProbs={currentProbs}
-              baselineProbs={baselineProbs}
-              onScenarioClick={setDrawerScenario}
             />
           </div>
 

@@ -164,9 +164,9 @@ export const MarketImpactChart = memo(function MarketImpactChart({
       </div>
 
       {/* KDE distribution curve */}
-      <div className="h-[220px]">
+      <div className="h-[245px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={curveData} margin={{ top: 10, right: 10, left: -5, bottom: 5 }}>
+          <AreaChart data={curveData} margin={{ top: 20, right: 10, left: -5, bottom: 5 }}>
             <defs>
               <linearGradient id={`kde-fill-${selectedAsset}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={color} stopOpacity={0.3} />
