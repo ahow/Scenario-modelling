@@ -228,7 +228,7 @@ export default function App() {
         <div className="max-w-[1104px] mx-auto px-4 sm:px-6">
           {/* Top row: title + Schroders logo */}
           <div className="flex items-center justify-between pt-3 pb-1">
-            <h1 className="font-heading text-[22px] sm:text-[26px] font-bold tracking-tight text-[var(--sch-blue)] dark:text-[hsl(var(--primary))]">
+            <h1 className="font-heading text-[22px] sm:text-[26px] font-bold tracking-tight text-[var(--sch-navy)] dark:text-foreground">
               Scenario Engine: Iran Conflict
             </h1>
             <SchrodersLogo className="h-5 sm:h-6 w-auto text-[var(--sch-navy)] dark:text-foreground flex-shrink-0 ml-6" />
