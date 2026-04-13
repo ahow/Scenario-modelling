@@ -342,15 +342,15 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             {hasCurrentLine && (
               <ReferenceLine
                 x={currentLineValue}
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth={1.5}
-                strokeDasharray="2 2"
+                stroke={isPortfolio ? 'hsl(var(--muted-foreground))' : '#0074B7'}
+                strokeWidth={2}
+                strokeDasharray="4 3"
                 label={{
                   value: isPortfolio ? 'Base (100)' : `Current: ${fmtPct(currentPct!)}`,
                   position: 'insideTopRight',
-                  fontSize: 10,
-                  fill: 'hsl(var(--muted-foreground))',
-                  fontWeight: 500,
+                  fontSize: 11,
+                  fill: isPortfolio ? 'hsl(var(--muted-foreground))' : '#0074B7',
+                  fontWeight: 600,
                 }}
               />
             )}
@@ -390,7 +390,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
         </div>
         {hasCurrentLine && (
           <div className="flex items-center gap-1.5">
-            <span className="w-5 h-px bg-muted-foreground rounded-full inline-block" style={{ backgroundImage: 'repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0, hsl(var(--muted-foreground)) 2px, transparent 2px, transparent 4px)' }} />
+            <span className="w-5 h-[2px] rounded-full inline-block" style={{ backgroundImage: isPortfolio ? 'repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0, hsl(var(--muted-foreground)) 3px, transparent 3px, transparent 6px)' : 'repeating-linear-gradient(90deg, #0074B7 0, #0074B7 3px, transparent 3px, transparent 6px)' }} />
             {isPortfolio ? 'Base level (100)' : 'Current level (live)'}
           </div>
         )}
