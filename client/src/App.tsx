@@ -416,6 +416,9 @@ export default function App() {
                     {autoCompute ? 'Model-driven' : 'Manual mode'}
                   </span>
                 </div>
+                <p className="text-[12px] text-muted-foreground leading-relaxed mb-2">
+                  These variables are modelled automatically based on the probabilities implied by your decisions above — there is no need to change them. However, you can adjust them manually if you have a different view.
+                </p>
                 <div className="space-y-3">
                   {ENDOGENOUS_SIGNALS.map((signalId) => {
                     const signal = SIGNAL_MAP[signalId];
