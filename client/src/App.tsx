@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, RotateCcw, Link2, Check, Cpu } from "lucide-react";
+import { SchrodersLogo } from "./components/SchrodersLogo";
 import { MarketStrip } from "./components/MarketStrip";
 import { ScenarioBar } from "./components/ScenarioBar";
 import { DecisionCard, type AnchorMarker } from "./components/DecisionCard";
@@ -222,33 +223,35 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header — Schroders-style white nav */}
+      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[var(--sch-border)] bg-white dark:bg-[hsl(var(--card))] dark:border-border">
         <div className="max-w-[1104px] mx-auto px-4 sm:px-6">
-          <div className="h-14 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="font-heading text-[15px] font-bold tracking-tight text-[var(--sch-navy)] dark:text-foreground">
-                Scenario Engine
-              </h1>
-              <span className="hidden sm:inline text-[11px] text-[var(--sch-muted)] font-normal">
-                Iran Conflict
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Auto-compute toggle */}
+          {/* Top row: title + Schroders logo */}
+          <div className="flex items-center justify-between pt-3 pb-1">
+            <h1 className="font-heading text-[22px] sm:text-[26px] font-bold tracking-tight text-[var(--sch-blue)] dark:text-[hsl(var(--primary))]">
+              Scenario Engine: Iran Conflict
+            </h1>
+            <SchrodersLogo className="h-5 sm:h-6 w-auto text-[var(--sch-navy)] dark:text-foreground flex-shrink-0 ml-6" />
+          </div>
+
+          {/* Toolbar row: controls + market strip */}
+          <div className="flex items-center justify-between pb-2 gap-3">
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button
                 variant={autoCompute ? "default" : "ghost"}
                 size="sm"
                 className={`h-7 px-2 text-[11px] gap-1 ${autoCompute ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : ''}`}
                 onClick={handleToggleAutoCompute}
-                title="Toggle auto-computation of reactive decisions (China, Houthis, Markets)"
+                title="Auto-compute: when enabled, reactive decisions (China, Houthis, Markets) update automatically based on your other settings"
                 data-testid="button-auto-compute"
               >
                 <Cpu className="w-3 h-3" />
                 <span className="hidden sm:inline">Auto</span>
               </Button>
-              {/* Certainty indicator */}
-              <div className="hidden sm:flex items-center gap-1.5 ml-1 px-2 py-1 rounded-md bg-muted/50">
+              <div
+                className="hidden sm:flex items-center gap-1.5 ml-1 px-2 py-1 rounded-md bg-muted/50"
+                title={`Signal coverage: ${movedCount} of ${SIGNALS.length} decision signals have been set (moved from neutral position)`}
+              >
                 <div className="flex gap-0.5">
                   {Array.from({ length: SIGNALS.length }).map((_, i) => (
                     <div
@@ -275,8 +278,8 @@ export default function App() {
                 {dark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
               </Button>
             </div>
+            <MarketStrip weightedMarket={weightedMarket} />
           </div>
-          <MarketStrip weightedMarket={weightedMarket} />
         </div>
       </header>
 

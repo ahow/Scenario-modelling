@@ -34,9 +34,9 @@ export const NarrativePanel = memo(function NarrativePanel({
         <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Scenario Outlook
         </h3>
-        <div className="text-[13px] leading-relaxed text-foreground whitespace-pre-line">
+        <p className="text-[13px] leading-relaxed text-foreground">
           {scenarioNarrative}
-        </div>
+        </p>
       </div>
 
       {/* Market impact summary */}

@@ -158,13 +158,13 @@ export function generateNarrative(
     scenarioNarrative = `The most likely outcome is "${topScenario.name}" at ${topPct}% probability. ${topScenario.narrative}`;
 
     if (secondPct > 15) {
-      scenarioNarrative += `\n\nThe second most likely outcome is "${secondScenario.name}" at ${secondPct}%. ${secondScenario.shortDesc}.`;
+      scenarioNarrative += ` The second most likely outcome is "${secondScenario.name}" at ${secondPct}%. ${secondScenario.shortDesc}.`;
     }
 
     const dualProb = Math.round(probs.dual * 100);
     const breakoutProb = Math.round(probs.breakout * 100);
     if (dualProb > 8 || breakoutProb > 8) {
-      scenarioNarrative += `\n\nTail risk warning: `;
+      scenarioNarrative += ` Tail risk warning: `;
       if (dualProb > 8) scenarioNarrative += `The dual chokepoint crisis carries a ${dualProb}% probability — well above the baseline 6%. `;
       if (breakoutProb > 8) scenarioNarrative += `Nuclear breakout carries a ${breakoutProb}% probability — significantly elevated from the 4% baseline.`;
     }
