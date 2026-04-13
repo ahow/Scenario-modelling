@@ -4,9 +4,9 @@
 // based on events known at that time, run through the same engine.
 // ============================================================
 
-import type { SignalId, ScenarioId } from './config';
-import { computeProbsFromSliders, getBaseProbs } from './engine';
-import { SIGNALS } from './config';
+import type { SignalId, ScenarioId, AssetId } from './config';
+import { computeProbsFromSliders, computeWeightedMarket, getBaseProbs } from './engine';
+import { SIGNALS, SCENARIO_IDS, MARKET_IMPACT, ASSETS } from './config';
 
 export interface HistoricalSnapshot {
   date: string;       // ISO date
@@ -202,7 +202,6 @@ const TIMELINE: HistoricalSnapshot[] = [
 
 /**
  * Compute the implied scenario probabilities at each historical snapshot.
- * Returns array of { date, label, probs: Record<ScenarioId, number> }
  */
 export function computeHistoricalProbabilities(): Array<{
   date: string;
@@ -214,7 +213,6 @@ export function computeHistoricalProbabilities(): Array<{
   const baseProbs = getBaseProbs();
 
   return TIMELINE.map(snapshot => {
-    // Build full slider state: defaults + overrides
     const fullState: Record<string, number> = {};
     for (const signal of SIGNALS) {
       fullState[signal.id] = snapshot.sliders[signal.id] ?? 50;
@@ -231,6 +229,57 @@ export function computeHistoricalProbabilities(): Array<{
       detail: snapshot.detail,
       source: snapshot.source,
       probs,
+    };
+  });
+}
+
+/**
+ * Compute the implied market outcomes (expected value ± std deviation)
+ * at each historical snapshot.
+ */
+export function computeHistoricalMarketOutcomes(): Array<{
+  date: string;
+  label: string;
+  markets: Record<AssetId, { expected: number; lo: number; hi: number; stdDev: number }>;
+}> {
+  const baseProbs = getBaseProbs();
+
+  return TIMELINE.map(snapshot => {
+    const fullState: Record<string, number> = {};
+    for (const signal of SIGNALS) {
+      fullState[signal.id] = snapshot.sliders[signal.id] ?? 50;
+    }
+
+    const probs = computeProbsFromSliders(
+      fullState as Record<SignalId, number>,
+      baseProbs,
+    );
+
+    const weighted = computeWeightedMarket(probs);
+
+    // Compute std deviation for each asset as a measure of outcome uncertainty
+    const markets: Record<string, { expected: number; lo: number; hi: number; stdDev: number }> = {};
+    for (const asset of ASSETS) {
+      const mid = weighted[asset.id].mid;
+      // Variance = sum(prob * (scenario_mid - expected)^2)
+      let variance = 0;
+      for (const sid of SCENARIO_IDS) {
+        const scenarioMid = MARKET_IMPACT[sid][asset.id].mid;
+        variance += probs[sid] * (scenarioMid - mid) ** 2;
+      }
+      const stdDev = Math.sqrt(variance);
+      markets[asset.id] = {
+        expected: mid,
+        lo: mid - stdDev,
+        hi: mid + stdDev,
+        stdDev,
+      };
+    }
+
+    return {
+      date: snapshot.date,
+      label: snapshot.label,
+      markets: markets as Record<AssetId, { expected: number; lo: number; hi: number; stdDev: number }>,
     };
   });
 }

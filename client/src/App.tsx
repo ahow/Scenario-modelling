@@ -9,6 +9,8 @@ import { ScenarioDrawer } from "./components/ScenarioDrawer";
 import { BriefingPanel } from "./components/BriefingPanel";
 import { ScenarioProbChart } from "./components/ScenarioProbChart";
 import { HistoryChart } from "./components/HistoryChart";
+import { MarketImpactChart } from "./components/MarketImpactChart";
+import { HistoryMarketChart } from "./components/HistoryMarketChart";
 import {
   type SignalId,
   type ScenarioId,
@@ -309,8 +311,11 @@ export default function App() {
           onScenarioClick={setDrawerScenario}
         />
 
-        {/* Historical timeseries */}
-        <HistoryChart />
+        {/* Historical timeseries — scenario probabilities and market outcomes side-by-side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <HistoryChart />
+          <HistoryMarketChart />
+        </div>
       </div>
 
       {/* Main content: narrative + decisions */}
@@ -323,6 +328,17 @@ export default function App() {
             topScenarios={narrative.topScenarios}
             weightedMarket={weightedMarket}
             setCount={movedCount}
+          />
+        </div>
+
+        {/* Market impact range chart — outcome variable distributions */}
+        <div className="mb-4 rounded-lg border border-border bg-card p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Market Impact — Outcome Distributions
+          </h3>
+          <MarketImpactChart
+            currentProbs={currentProbs}
+            weightedMarket={weightedMarket}
           />
         </div>
 

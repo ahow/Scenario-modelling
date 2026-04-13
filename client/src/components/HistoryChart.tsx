@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -10,10 +10,9 @@ import {
 } from 'recharts';
 import { SCENARIOS, SCENARIO_MAP, type ScenarioId } from '../lib/config';
 import { computeHistoricalProbabilities } from '../lib/history';
-import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 export const HistoryChart = memo(function HistoryChart() {
-  const [expanded, setExpanded] = useState(false);
 
   const history = useMemo(() => computeHistoricalProbabilities(), []);
 
@@ -84,27 +83,16 @@ export const HistoryChart = memo(function HistoryChart() {
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
-        onClick={() => setExpanded(e => !e)}
-      >
+      <div className="flex items-center justify-between px-4 py-2.5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Historical Scenario Probabilities — Timeline
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">
-            Jun 2025 — Apr 2026
-          </span>
-          {expanded ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+        <span className="text-[10px] text-muted-foreground">
+          Jun 2025 — Apr 2026
+        </span>
+      </div>
 
-      {expanded && (
-        <div className="border-t border-border/50">
+      <div className="border-t border-border/50">
           {/* Chart */}
           <div className="px-2 pt-3 pb-1">
             <ResponsiveContainer width="100%" height={280}>
@@ -177,7 +165,6 @@ export const HistoryChart = memo(function HistoryChart() {
             </p>
           </div>
         </div>
-      )}
     </div>
   );
 });
