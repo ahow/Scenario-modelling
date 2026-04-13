@@ -18,7 +18,7 @@ export const NarrativePanel = memo(function NarrativePanel({
 }: NarrativePanelProps) {
   if (setCount === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-4" data-testid="narrative-panel">
+      <div className="border border-dashed border-border/60 bg-[var(--sch-light-bg)] dark:bg-muted/20 p-5" data-testid="narrative-panel">
         <p className="text-[13px] text-muted-foreground text-center">
           Adjust the sliders below to explore how different decision paths change the scenario outlook.
           Drag left or right to shift probabilities toward each pole.
@@ -28,10 +28,10 @@ export const NarrativePanel = memo(function NarrativePanel({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden" data-testid="narrative-panel">
+    <div className="border border-border bg-card shadow-sm overflow-hidden" data-testid="narrative-panel">
       {/* Scenario narrative */}
       <div className="p-4 border-b border-border/50">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Scenario Outlook
         </h3>
         <div className="text-[13px] leading-relaxed text-foreground whitespace-pre-line">
@@ -41,7 +41,7 @@ export const NarrativePanel = memo(function NarrativePanel({
 
       {/* Market impact summary */}
       <div className="p-4 border-b border-border/50">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Market Impact
         </h3>
 
@@ -75,7 +75,7 @@ export const NarrativePanel = memo(function NarrativePanel({
 
       {/* Top scenarios mini bar */}
       <div className="px-4 py-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Probability Distribution
         </h3>
         <div className="space-y-1.5">

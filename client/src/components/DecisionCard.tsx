@@ -60,7 +60,7 @@ export const DecisionCard = memo(function DecisionCard({
 
   return (
     <div
-      className={`rounded-lg border transition-all duration-200 ${
+      className={`border transition-all duration-200 ${
         isEndogenous && !isLocked
           ? "border-dashed border-[hsl(var(--primary)/.2)] bg-card/70"
           : isMoved

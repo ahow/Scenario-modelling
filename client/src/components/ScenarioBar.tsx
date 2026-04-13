@@ -23,7 +23,7 @@ export const ScenarioBar = memo(function ScenarioBar({
   return (
     <div data-testid="scenario-bar">
       {/* Stacked horizontal bar */}
-      <div className="flex h-8 rounded-lg overflow-hidden shadow-sm border border-border/30">
+      <div className="flex h-8 overflow-hidden border border-border/30">
         {sorted.map((scenario) => {
           const prob = currentProbs[scenario.id] ?? 0;
           const pct = prob * 100;

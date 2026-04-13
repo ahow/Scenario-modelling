@@ -2,60 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE — Cool slate analytical instrument */
+/* LIGHT MODE — Schroders-inspired: deep navy, bright blue accents, clean white */
 :root {
-  --button-outline: rgba(0, 0, 0, 0.1);
-  --badge-outline: rgba(0, 0, 0, 0.05);
+  --button-outline: rgba(0, 30, 65, 0.12);
+  --badge-outline: rgba(0, 30, 65, 0.06);
   --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0, 0, 0, 0.03);
-  --elevate-2: rgba(0, 0, 0, 0.08);
-  --background: 220 14% 96%;
-  --foreground: 220 20% 10%;
-  --border: 220 10% 88%;
-  --card: 220 14% 98%;
-  --card-foreground: 220 20% 10%;
-  --card-border: 220 10% 91%;
-  --sidebar: 220 14% 95%;
-  --sidebar-foreground: 220 20% 10%;
-  --sidebar-border: 220 10% 88%;
-  --sidebar-primary: 213 60% 42%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 220 14% 90%;
-  --sidebar-accent-foreground: 220 20% 10%;
-  --sidebar-ring: 213 60% 42%;
-  --popover: 220 14% 97%;
-  --popover-foreground: 220 20% 10%;
-  --popover-border: 220 10% 88%;
-  --primary: 213 60% 42%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 220 12% 91%;
-  --secondary-foreground: 220 20% 10%;
-  --muted: 220 12% 92%;
-  --muted-foreground: 220 8% 46%;
-  --accent: 220 12% 91%;
-  --accent-foreground: 220 20% 10%;
+  --elevate-1: rgba(0, 30, 65, 0.03);
+  --elevate-2: rgba(0, 30, 65, 0.06);
+
+  /* Schroders palette mapped to HSL:
+     #001E41 = 213 100% 13%  (deep navy — primary brand)
+     #0074B7 = 201 100% 36%  (bright blue — accents/links)
+     #002A5E = 213 100% 18%  (darker navy)
+     #F4F6F9 = 218 33% 97%   (light grey background)
+     #D9DFE7 = 216 22% 88%   (border grey)
+     #9AA8B4 = 207 14% 66%   (muted text)
+  */
+  --background: 0 0% 100%;
+  --foreground: 213 100% 13%;
+  --border: 216 22% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 213 100% 13%;
+  --card-border: 216 22% 90%;
+  --sidebar: 218 33% 97%;
+  --sidebar-foreground: 213 100% 13%;
+  --sidebar-border: 216 22% 88%;
+  --sidebar-primary: 201 100% 36%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 218 33% 95%;
+  --sidebar-accent-foreground: 213 100% 13%;
+  --sidebar-ring: 201 100% 36%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 213 100% 13%;
+  --popover-border: 216 22% 88%;
+  --primary: 201 100% 36%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 218 33% 95%;
+  --secondary-foreground: 213 100% 13%;
+  --muted: 218 33% 97%;
+  --muted-foreground: 207 14% 46%;
+  --accent: 218 33% 95%;
+  --accent-foreground: 213 100% 13%;
   --destructive: 0 72% 48%;
   --destructive-foreground: 0 0% 98%;
-  --input: 220 10% 78%;
-  --ring: 213 60% 42%;
-  --chart-1: 213 60% 42%;
+  --input: 216 22% 82%;
+  --ring: 201 100% 36%;
+  --chart-1: 201 100% 36%;
   --chart-2: 160 50% 38%;
   --chart-3: 35 80% 50%;
   --chart-4: 15 70% 48%;
   --chart-5: 260 45% 48%;
-  --font-sans: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-sans: 'Noto Sans', 'Albert Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Albert Sans', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Menlo', monospace;
-  --radius: 0.375rem;
-  --shadow-2xs: 0px 1px 2px 0px hsl(220 20% 10% / 0.04);
-  --shadow-xs: 0px 1px 3px 0px hsl(220 20% 10% / 0.06);
-  --shadow-sm: 0px 1px 3px 0px hsl(220 20% 10% / 0.06), 0px 1px 2px -1px hsl(220 20% 10% / 0.04);
-  --shadow: 0px 2px 4px 0px hsl(220 20% 10% / 0.06), 0px 1px 2px -1px hsl(220 20% 10% / 0.04);
-  --shadow-md: 0px 4px 6px -1px hsl(220 20% 10% / 0.06), 0px 2px 4px -2px hsl(220 20% 10% / 0.04);
-  --shadow-lg: 0px 8px 16px -2px hsl(220 20% 10% / 0.08), 0px 4px 6px -2px hsl(220 20% 10% / 0.04);
-  --shadow-xl: 0px 16px 32px -4px hsl(220 20% 10% / 0.1), 0px 8px 16px -4px hsl(220 20% 10% / 0.06);
-  --shadow-2xl: 0px 24px 48px -8px hsl(220 20% 10% / 0.18);
+  --radius: 0rem;
+  --shadow-2xs: 0px 1px 2px 0px hsl(213 100% 13% / 0.04);
+  --shadow-xs: 0px 1px 3px 0px hsl(213 100% 13% / 0.05);
+  --shadow-sm: 0px 1px 3px 0px hsl(213 100% 13% / 0.05), 0px 1px 2px -1px hsl(213 100% 13% / 0.03);
+  --shadow: 0px 2px 4px 0px hsl(213 100% 13% / 0.05), 0px 1px 2px -1px hsl(213 100% 13% / 0.03);
+  --shadow-md: 0px 4px 6px -1px hsl(213 100% 13% / 0.05), 0px 2px 4px -2px hsl(213 100% 13% / 0.03);
+  --shadow-lg: 0px 8px 16px -2px hsl(213 100% 13% / 0.06), 0px 4px 6px -2px hsl(213 100% 13% / 0.03);
+  --shadow-xl: 0px 16px 32px -4px hsl(213 100% 13% / 0.08), 0px 8px 16px -4px hsl(213 100% 13% / 0.04);
+  --shadow-2xl: 0px 24px 48px -8px hsl(213 100% 13% / 0.14);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+
+  /* Schroders brand tokens */
+  --sch-navy: #001E41;
+  --sch-blue: #0074B7;
+  --sch-mid-blue: #24448E;
+  --sch-light-bg: #F4F6F9;
+  --sch-border: #D9DFE7;
+  --sch-muted: #9AA8B4;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
@@ -66,43 +84,43 @@
   --destructive-border: hsl(var(--destructive));
 }
 
-/* DARK MODE — Deep charcoal analytical instrument */
+/* DARK MODE — Deep navy analytical */
 .dark {
   --button-outline: rgba(255, 255, 255, 0.08);
   --badge-outline: rgba(255, 255, 255, 0.05);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
-  --background: 220 16% 8%;
-  --foreground: 220 8% 90%;
-  --border: 220 10% 16%;
-  --card: 220 14% 10%;
-  --card-foreground: 220 8% 90%;
-  --card-border: 220 10% 14%;
-  --sidebar: 220 14% 10%;
-  --sidebar-foreground: 220 8% 90%;
-  --sidebar-border: 220 10% 16%;
-  --sidebar-primary: 213 55% 55%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 220 10% 16%;
-  --sidebar-accent-foreground: 220 8% 90%;
-  --sidebar-ring: 213 55% 55%;
-  --popover: 220 14% 12%;
-  --popover-foreground: 220 8% 90%;
-  --popover-border: 220 10% 18%;
-  --primary: 213 55% 55%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 220 10% 18%;
-  --secondary-foreground: 220 8% 90%;
-  --muted: 220 10% 18%;
-  --muted-foreground: 220 6% 55%;
-  --accent: 220 10% 17%;
-  --accent-foreground: 220 8% 90%;
+  --background: 213 50% 7%;
+  --foreground: 210 20% 92%;
+  --border: 213 30% 16%;
+  --card: 213 40% 10%;
+  --card-foreground: 210 20% 92%;
+  --card-border: 213 30% 14%;
+  --sidebar: 213 40% 10%;
+  --sidebar-foreground: 210 20% 92%;
+  --sidebar-border: 213 30% 16%;
+  --sidebar-primary: 201 80% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 213 30% 16%;
+  --sidebar-accent-foreground: 210 20% 92%;
+  --sidebar-ring: 201 80% 48%;
+  --popover: 213 40% 12%;
+  --popover-foreground: 210 20% 92%;
+  --popover-border: 213 30% 18%;
+  --primary: 201 80% 48%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 213 30% 18%;
+  --secondary-foreground: 210 20% 92%;
+  --muted: 213 30% 16%;
+  --muted-foreground: 210 12% 55%;
+  --accent: 213 30% 17%;
+  --accent-foreground: 210 20% 92%;
   --destructive: 0 65% 55%;
   --destructive-foreground: 0 0% 98%;
-  --input: 220 10% 24%;
-  --ring: 213 55% 55%;
-  --chart-1: 213 55% 60%;
+  --input: 213 30% 24%;
+  --ring: 201 80% 48%;
+  --chart-1: 201 80% 55%;
   --chart-2: 160 45% 50%;
   --chart-3: 35 75% 58%;
   --chart-4: 15 65% 55%;
@@ -132,6 +150,10 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  /* Schroders-style heading font */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
 }
 
 /* Tabular numbers for data display */
@@ -142,6 +164,22 @@
 /* Smooth number transitions */
 .num-transition {
   transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Schroders signature heading accent bar */
+.sch-accent-bar {
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+.sch-accent-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 48px;
+  height: 3px;
+  background-color: var(--sch-blue);
+  border-radius: 1.5px;
 }
 
 /* Animate-in utility */

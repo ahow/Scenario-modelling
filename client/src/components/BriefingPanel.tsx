@@ -38,7 +38,7 @@ export const BriefingPanel = memo(function BriefingPanel({
 
   return (
     <div
-      className={`rounded-lg border shadow-sm overflow-hidden transition-all ${severityStyles[briefing.severity]}`}
+      className={`border overflow-hidden transition-all ${severityStyles[briefing.severity]}`}
       data-testid="briefing-panel"
     >
       {/* Header — always visible */}
@@ -66,7 +66,7 @@ export const BriefingPanel = memo(function BriefingPanel({
         <div className="border-t border-border/50">
           {/* News Items */}
           <div className="px-4 py-3 space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground">
               Latest Developments
             </h3>
             {briefing.items.map((item, i) => {
@@ -109,7 +109,7 @@ export const BriefingPanel = memo(function BriefingPanel({
 
           {/* Probability Shifts */}
           <div className="px-4 py-3 border-t border-border/50">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Decision Point Shifts
             </h3>
             <div className="space-y-1.5">
@@ -150,7 +150,7 @@ export const BriefingPanel = memo(function BriefingPanel({
           {/* Scenario Impact */}
           <div className="px-4 py-3 border-t border-border/50">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground">
                 Scenario Probability Impact
               </h3>
               <button

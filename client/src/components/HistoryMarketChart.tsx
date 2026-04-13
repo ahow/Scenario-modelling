@@ -92,9 +92,9 @@ export const HistoryMarketChart = memo(function HistoryMarketChart() {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
+    <div className="border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground">
           Historical Market Outcomes — Timeline
         </h3>
         <span className="text-[10px] text-muted-foreground">

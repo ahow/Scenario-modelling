@@ -222,19 +222,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-          <div className="h-11 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 flex-shrink-0" aria-label="Logo">
-                <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="12" cy="12" r="4" stroke="hsl(213, 60%, 42%)" strokeWidth="2" />
-                <path d="M12 1v22M1 12h22" stroke="currentColor" strokeWidth="0.8" opacity="0.25" />
-              </svg>
-              <h1 className="text-sm font-semibold tracking-tight">
-                Iran Conflict Scenario Engine
+      {/* Header — Schroders-style white nav */}
+      <header className="sticky top-0 z-50 border-b border-[var(--sch-border)] bg-white dark:bg-[hsl(var(--card))] dark:border-border">
+        <div className="max-w-[1104px] mx-auto px-4 sm:px-6">
+          <div className="h-14 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="font-heading text-[15px] font-bold tracking-tight text-[var(--sch-navy)] dark:text-foreground">
+                Scenario Engine
               </h1>
+              <span className="hidden sm:inline text-[11px] text-[var(--sch-muted)] font-normal">
+                Iran Conflict
+              </span>
             </div>
             <div className="flex items-center gap-1">
               {/* Auto-compute toggle */}
@@ -283,7 +281,7 @@ export default function App() {
       </header>
 
       {/* Briefing Panel */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-4 pb-2">
+      <div className="max-w-[1104px] mx-auto px-4 sm:px-6 pt-4 pb-2">
         <BriefingPanel
           briefing={briefing}
           briefingAge={briefingAge}
@@ -292,10 +290,10 @@ export default function App() {
       </div>
 
       {/* Scenario probability chart + bar */}
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-3 pb-2 space-y-3">
+      <div className="max-w-[1104px] mx-auto px-4 sm:px-6 pt-3 pb-2 space-y-3">
         {/* Prominent probability distribution chart */}
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        <div className="border border-border bg-card p-5">
+          <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-4 sch-accent-bar">
             Probability Distribution
           </h3>
           <ScenarioProbChart
@@ -316,7 +314,7 @@ export default function App() {
       </div>
 
       {/* Main content: narrative + decisions */}
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-8">
+      <main className="max-w-[1104px] mx-auto px-4 sm:px-6 pb-8">
         {/* Narrative panel */}
         <div className="mb-4">
           <NarrativePanel
@@ -329,8 +327,8 @@ export default function App() {
         </div>
 
         {/* Market impact range chart — outcome variable distributions */}
-        <div className="mb-4 rounded-lg border border-border bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+        <div className="mb-4 border border-border bg-card p-5">
+          <h3 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground mb-4 sch-accent-bar">
             Market Impact — Outcome Distributions
           </h3>
           <MarketImpactChart
@@ -346,12 +344,12 @@ export default function App() {
 
         {/* Decisions */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground sch-accent-bar">
             Key Decisions — Spectrum Assessment
           </h2>
         </div>
 
-        <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
+        <div className="mb-4 p-4 bg-[var(--sch-light-bg)] dark:bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
           <p>
             Each decision point is represented as a spectrum between two opposing outcomes.
             Drag the slider toward the pole you believe is more likely — the further you move it,
@@ -390,7 +388,7 @@ export default function App() {
           {ENDOGENOUS_SIGNALS.some(() => true) && (
             <>
               <div className="flex items-center gap-2 mt-4 mb-1">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h2 className="text-xs font-heading font-semibold uppercase tracking-wider text-muted-foreground sch-accent-bar">
                   Reactive Decisions — Auto-Computed
                 </h2>
                 <span className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
@@ -425,8 +423,8 @@ export default function App() {
         </div>
 
         {/* Methodology */}
-        <div className="mt-6 p-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-1">Methodology</h3>
+        <div className="mt-8 p-4 bg-[var(--sch-light-bg)] dark:bg-muted/50 border border-border text-[12px] text-muted-foreground leading-relaxed space-y-1.5">
+          <h3 className="text-xs font-heading font-semibold uppercase tracking-wider mb-2 sch-accent-bar">Methodology</h3>
           <p>
             The engine uses a three-stage computation pipeline: (1) each slider position is converted
             to interpolated option weights via piecewise linear interpolation between 2 or 3 anchor points;
