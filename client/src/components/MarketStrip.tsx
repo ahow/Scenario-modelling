@@ -15,7 +15,7 @@ export const MarketStrip = memo(function MarketStrip({ weightedMarket }: MarketS
       {stripAssets.map((assetId, i) => {
         const asset = ASSETS.find(a => a.id === assetId)!;
         const wm = weightedMarket[assetId];
-        const { direction, color } = getDirection(assetId, wm.mid, asset.currentValue);
+        const { direction, color } = getDirection(assetId, wm.mid);
 
         return (
           <div
@@ -44,30 +44,21 @@ export const MarketStrip = memo(function MarketStrip({ weightedMarket }: MarketS
   );
 });
 
+/** All values are now % from baseline. Positive = up from pre-war. */
 function getDirection(
   assetId: AssetId,
   mid: number,
-  current: number
 ): { direction: "up" | "down" | "flat"; color: string } {
-  // For absolute price assets (brent, gold), compare to current
-  if (assetId === 'brent') {
-    const delta = mid - current;
-    if (Math.abs(delta) < current * 0.03) return { direction: "flat", color: "" };
-    return delta > 0
-      ? { direction: "up", color: "text-red-600 dark:text-red-400" }    // higher oil = risk
-      : { direction: "down", color: "text-emerald-600 dark:text-emerald-400" };
-  }
-  if (assetId === 'gold') {
-    const delta = mid - current;
-    if (Math.abs(delta) < current * 0.03) return { direction: "flat", color: "" };
-    return delta > 0
-      ? { direction: "up", color: "" }
-      : { direction: "down", color: "" };
-  }
-  // For % return assets: positive = green, negative = red
   if (Math.abs(mid) < 1) return { direction: "flat", color: "" };
-  if (assetId === 'usd') {
-    // Stronger USD can be ambiguous, keep neutral colors
+
+  // Brent: higher oil = risk indicator (red for high)
+  if (assetId === 'brent') {
+    return mid > 20 // >20% above baseline = warning
+      ? { direction: "up", color: "text-red-600 dark:text-red-400" }
+      : { direction: "up", color: "" };
+  }
+  // Gold: neutral colors (safe-haven indicator, not clearly good/bad)
+  if (assetId === 'gold' || assetId === 'usd') {
     return mid > 0
       ? { direction: "up", color: "" }
       : { direction: "down", color: "" };

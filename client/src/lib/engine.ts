@@ -172,16 +172,16 @@ export function generateNarrative(
 
   let marketNarrative = '';
   if (movedCount > 0) {
-    const oil = market.brent.mid;
-    const dm = market.dm_eq.mid;
-    const gold = market.gold.mid;
+    const oil = market.brent.mid;   // now % from baseline
+    const dm = market.dm_eq.mid;    // % from baseline
+    const gold = market.gold.mid;   // % from baseline
 
-    if (oil > 110) {
-      marketNarrative += MARKET_COMMENTARY.oil_high({ price: ASSET_MAP.brent.format(oil) });
-    } else if (oil < 85) {
-      marketNarrative += MARKET_COMMENTARY.oil_low({ price: ASSET_MAP.brent.format(oil) });
+    if (oil > 70) {
+      marketNarrative += MARKET_COMMENTARY.oil_high({ pct: ASSET_MAP.brent.format(oil) });
+    } else if (oil < 30) {
+      marketNarrative += MARKET_COMMENTARY.oil_low({ pct: ASSET_MAP.brent.format(oil) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.oil_mid({ price: ASSET_MAP.brent.format(oil) });
+      marketNarrative += MARKET_COMMENTARY.oil_mid({ pct: ASSET_MAP.brent.format(oil) });
     }
 
     marketNarrative += ' ';
@@ -194,10 +194,10 @@ export function generateNarrative(
     }
 
     marketNarrative += ' ';
-    if (gold > 5200) {
-      marketNarrative += MARKET_COMMENTARY.gold_high({ price: ASSET_MAP.gold.format(gold) });
+    if (gold > 15) {
+      marketNarrative += MARKET_COMMENTARY.gold_high({ pct: ASSET_MAP.gold.format(gold) });
     } else {
-      marketNarrative += MARKET_COMMENTARY.gold_low({ price: ASSET_MAP.gold.format(gold) });
+      marketNarrative += MARKET_COMMENTARY.gold_low({ pct: ASSET_MAP.gold.format(gold) });
     }
   }
 

@@ -259,7 +259,9 @@ export const WEIGHTS: WeightMatrix = {
 };
 
 // --- MARKET IMPACT DATA ---
-// v7: New asset classes — real-world indices
+// v7.3: All assets expressed as % change from pre-war baseline
+// Baselines: 3-month average (Nov 15 2025 – Feb 15 2026) of ETF proxies
+// Live current levels fetched from FMP API at runtime
 export type AssetId = 'brent' | 'gold' | 'govbond' | 'credit' | 'dm_eq' | 'em_eq' | 'usd';
 
 export interface AssetRange {
@@ -272,21 +274,22 @@ export interface AssetRange {
 export interface AssetDef {
   id: AssetId;
   name: string;
-  unit: string;
-  currentValue: number;
+  ticker: string;      // ETF/futures proxy ticker
   format: (v: number) => string;
   formatShort: (v: number) => string;
 }
 
-// Current values as of Apr 2026 (estimated)
+// All assets now use % change from pre-war baseline
+const fmtPct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+
 export const ASSETS: AssetDef[] = [
-  { id: 'brent',   name: 'Brent Crude',       unit: '$/bbl',  currentValue: 97,    format: (v) => `$${v.toFixed(0)}/bbl`,  formatShort: (v) => `$${v.toFixed(0)}` },
-  { id: 'gold',    name: 'Gold',              unit: '$/oz',    currentValue: 4750,  format: (v) => `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,  formatShort: (v) => `$${(v/1000).toFixed(1)}k` },
-  { id: 'govbond', name: 'Gov Bonds',         unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
-  { id: 'credit',  name: 'Credit',            unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
-  { id: 'dm_eq',   name: 'DM Equities',       unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
-  { id: 'em_eq',   name: 'EM Equities',       unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
-  { id: 'usd',     name: 'USD Basket',        unit: '%',       currentValue: 0,     format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`,  formatShort: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%` },
+  { id: 'brent',   name: 'Brent Crude',   ticker: 'BZUSD', format: fmtPct, formatShort: fmtPct },
+  { id: 'gold',    name: 'Gold',          ticker: 'GCUSD', format: fmtPct, formatShort: fmtPct },
+  { id: 'govbond', name: 'Gov Bonds',     ticker: 'TLT',   format: fmtPct, formatShort: fmtPct },
+  { id: 'credit',  name: 'Credit',        ticker: 'LQD',   format: fmtPct, formatShort: fmtPct },
+  { id: 'dm_eq',   name: 'DM Equities',   ticker: 'ACWI',  format: fmtPct, formatShort: fmtPct },
+  { id: 'em_eq',   name: 'EM Equities',   ticker: 'EEM',   format: fmtPct, formatShort: fmtPct },
+  { id: 'usd',     name: 'USD Basket',    ticker: 'DXUSD', format: fmtPct, formatShort: fmtPct },
 ];
 
 export const ASSET_MAP = Object.fromEntries(ASSETS.map(a => [a.id, a])) as Record<AssetId, AssetDef>;
@@ -294,12 +297,16 @@ export const ASSET_MAP = Object.fromEntries(ASSETS.map(a => [a.id, a])) as Recor
 /**
  * MARKET_IMPACT — Scenario-conditional expected outcomes for each asset over a 3–12 month horizon.
  *
- * Brent & Gold: absolute price levels ($/bbl, $/oz).
- * Gov Bonds (FTSE World Government Bond Index): total return % — reflects yield moves + duration.
- * Credit (Global IG Corporate Index): excess return % vs. govs — reflects spread moves.
- * DM Equities (MSCI World): total return % from current levels.
- * EM Equities (MSCI EM): total return % from current levels.
- * USD Basket (DXY-type): % change from current (positive = stronger dollar).
+ * ALL VALUES ARE NOW % CHANGES FROM PRE-WAR BASELINE.
+ *
+ * Baselines (3-month avg, Nov 15 2025 – Feb 15 2026):
+ *   Brent (BZUSD):  $63.82/bbl
+ *   Gold (GCUSD):   $4,535/oz
+ *   Gov Bonds (TLT): 88.09
+ *   Credit (LQD):   110.67
+ *   DM Equities (ACWI): 142.93
+ *   EM Equities (EEM): 56.44
+ *   USD Basket (DXUSD): 98.31
  *
  * These are editorial estimates informed by historical conflict-era market moves,
  * geopolitical risk premia research, and scenario-specific supply/demand analysis.
@@ -307,8 +314,8 @@ export const ASSET_MAP = Object.fromEntries(ASSETS.map(a => [a.id, a])) as Recor
  */
 export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
   deal: {
-    brent:   { lo: 65, mid: 72, hi: 80, direction: 'Strongly bearish' },
-    gold:    { lo: 4200, mid: 4350, hi: 4550, direction: 'Bearish' },
+    brent:   { lo: 2, mid: 13, hi: 25, direction: 'Strongly bearish vs. war peak' },
+    gold:    { lo: -7, mid: -4, hi: 0, direction: 'Bearish' },
     govbond: { lo: 1, mid: 3, hi: 5, direction: 'Rally (yields fall)' },
     credit:  { lo: 1, mid: 3, hi: 5, direction: 'Spreads tighten sharply' },
     dm_eq:   { lo: 8, mid: 12, hi: 16, direction: 'Strong rally' },
@@ -316,8 +323,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: -4, mid: -2, hi: 0, direction: 'Weakens (risk-on)' },
   },
   frozen: {
-    brent:   { lo: 80, mid: 90, hi: 97, direction: 'Bearish vs. peak' },
-    gold:    { lo: 4600, mid: 4750, hi: 4950, direction: 'Stable' },
+    brent:   { lo: 25, mid: 41, hi: 52, direction: 'Elevated but stable' },
+    gold:    { lo: 1, mid: 5, hi: 9, direction: 'Stable' },
     govbond: { lo: -1, mid: 1, hi: 2, direction: 'Modest rally' },
     credit:  { lo: 0, mid: 1, hi: 2, direction: 'Stable to modest tightening' },
     dm_eq:   { lo: 2, mid: 5, hi: 8, direction: 'Modestly positive' },
@@ -325,8 +332,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: -1, mid: 0, hi: 2, direction: 'Stable' },
   },
   resumed: {
-    brent:   { lo: 110, mid: 120, hi: 130, direction: 'Bullish' },
-    gold:    { lo: 5000, mid: 5150, hi: 5400, direction: 'Bullish' },
+    brent:   { lo: 72, mid: 88, hi: 104, direction: 'Bullish' },
+    gold:    { lo: 10, mid: 14, hi: 19, direction: 'Bullish' },
     govbond: { lo: -2, mid: 1, hi: 4, direction: 'Mixed (flight-to-quality vs. inflation)' },
     credit:  { lo: -6, mid: -3, hi: -1, direction: 'Spreads widen' },
     dm_eq:   { lo: -14, mid: -9, hi: -5, direction: 'Bearish' },
@@ -334,8 +341,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: 2, mid: 4, hi: 6, direction: 'Strengthens (safe haven)' },
   },
   hormuz: {
-    brent:   { lo: 105, mid: 115, hi: 125, direction: 'Strongly bullish' },
-    gold:    { lo: 5200, mid: 5500, hi: 5900, direction: 'Strongly bullish' },
+    brent:   { lo: 65, mid: 80, hi: 96, direction: 'Strongly bullish' },
+    gold:    { lo: 15, mid: 21, hi: 30, direction: 'Strongly bullish' },
     govbond: { lo: -3, mid: 0, hi: 3, direction: 'Volatile — stagflation dilemma' },
     credit:  { lo: -8, mid: -5, hi: -2, direction: 'Spreads widen significantly' },
     dm_eq:   { lo: -20, mid: -14, hi: -8, direction: 'Strongly bearish' },
@@ -343,8 +350,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: 3, mid: 6, hi: 9, direction: 'Strongly strengthens' },
   },
   dual: {
-    brent:   { lo: 150, mid: 165, hi: 180, direction: 'Extreme bullish' },
-    gold:    { lo: 5800, mid: 6400, hi: 7000, direction: 'Extreme bullish' },
+    brent:   { lo: 135, mid: 159, hi: 182, direction: 'Extreme bullish' },
+    gold:    { lo: 28, mid: 41, hi: 54, direction: 'Extreme bullish' },
     govbond: { lo: -5, mid: -1, hi: 4, direction: 'Extreme volatility' },
     credit:  { lo: -15, mid: -10, hi: -6, direction: 'Crisis-level spread widening' },
     dm_eq:   { lo: -32, mid: -24, hi: -16, direction: 'Bear market' },
@@ -352,8 +359,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: 5, mid: 9, hi: 13, direction: 'Strong safe-haven bid' },
   },
   trump_exit: {
-    brent:   { lo: 70, mid: 77, hi: 85, direction: 'Bearish' },
-    gold:    { lo: 4300, mid: 4500, hi: 4700, direction: 'Modestly bearish' },
+    brent:   { lo: 10, mid: 21, hi: 33, direction: 'Bearish vs. war peak' },
+    gold:    { lo: -5, mid: -1, hi: 4, direction: 'Modestly bearish' },
     govbond: { lo: 0, mid: 2, hi: 3, direction: 'Modest rally' },
     credit:  { lo: 0, mid: 2, hi: 3, direction: 'Modest tightening' },
     dm_eq:   { lo: 4, mid: 7, hi: 11, direction: 'Positive' },
@@ -361,8 +368,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: -3, mid: -1, hi: 1, direction: 'Modestly weaker' },
   },
   collapse: {
-    brent:   { lo: 60, mid: 70, hi: 80, direction: 'Strongly bearish' },
-    gold:    { lo: 4800, mid: 5100, hi: 5500, direction: 'Bullish (nuclear uncertainty)' },
+    brent:   { lo: -6, mid: 10, hi: 25, direction: 'Strongly bearish' },
+    gold:    { lo: 6, mid: 12, hi: 21, direction: 'Bullish (nuclear uncertainty)' },
     govbond: { lo: 0, mid: 2, hi: 4, direction: 'Rally on lower oil' },
     credit:  { lo: -2, mid: 1, hi: 3, direction: 'Mixed' },
     dm_eq:   { lo: 3, mid: 8, hi: 13, direction: 'Positive (energy relief)' },
@@ -370,8 +377,8 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
     usd:     { lo: -2, mid: 1, hi: 4, direction: 'Volatile' },
   },
   breakout: {
-    brent:   { lo: 100, mid: 115, hi: 130, direction: 'Bullish' },
-    gold:    { lo: 5800, mid: 6500, hi: 8000, direction: 'Extreme bullish' },
+    brent:   { lo: 57, mid: 80, hi: 104, direction: 'Bullish' },
+    gold:    { lo: 28, mid: 43, hi: 76, direction: 'Extreme bullish' },
     govbond: { lo: -4, mid: 0, hi: 5, direction: 'Extreme volatility' },
     credit:  { lo: -12, mid: -7, hi: -3, direction: 'Sharp spread widening' },
     dm_eq:   { lo: -28, mid: -20, hi: -12, direction: 'Strongly bearish' },
@@ -382,12 +389,12 @@ export const MARKET_IMPACT: Record<ScenarioId, Record<AssetId, AssetRange>> = {
 
 // --- NARRATIVE TEMPLATES FOR MARKET COMMENTARY ---
 export const MARKET_COMMENTARY: Record<string, (values: Record<string, string>) => string> = {
-  oil_high: ({ price }) => `Brent crude is expected at ${price}, reflecting sustained supply disruption through the Strait of Hormuz and elevated risk premiums in tanker insurance markets.`,
-  oil_low: ({ price }) => `Brent crude is expected to ease toward ${price} as the risk premium dissipates and Strait transit normalises, restoring approximately 20m bbl/day of flow capacity.`,
-  oil_mid: ({ price }) => `Brent crude is expected around ${price}, trading in an elevated but stable range as partial Strait restrictions maintain a moderate risk premium.`,
-  equity_bearish: ({ pct }) => `Developed market equities are expected to decline ${pct}, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
-  equity_bullish: ({ pct }) => `Developed market equities are expected to gain ${pct} as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
-  equity_flat: ({ pct }) => `Developed market equities are expected to move ${pct}, reflecting an uneasy balance between persistent geopolitical risk and the market's ability to price in a prolonged stalemate.`,
-  gold_high: ({ price }) => `Gold is expected at ${price}, driven by safe-haven demand, central bank accumulation, and hedging against tail-risk scenarios including nuclear escalation.`,
-  gold_low: ({ price }) => `Gold is expected around ${price}, moderating from peak levels as de-escalation reduces the systemic risk premium that drove the recent rally.`,
+  oil_high: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels, reflecting sustained supply disruption through the Strait of Hormuz and elevated risk premiums in tanker insurance markets.`,
+  oil_low: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels as the risk premium partially dissipates and Strait transit normalises, restoring approximately 20m bbl/day of flow capacity.`,
+  oil_mid: ({ pct }) => `Brent crude is expected ${pct} above pre-war levels, trading in an elevated but stable range as partial Strait restrictions maintain a moderate risk premium.`,
+  equity_bearish: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels, driven by energy input cost inflation, earnings compression in transport and industrials, and elevated geopolitical risk premiums.`,
+  equity_bullish: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels as de-escalation removes the conflict risk premium, energy costs normalise, and investor confidence in the growth outlook improves.`,
+  equity_flat: ({ pct }) => `Developed market equities are expected ${pct} from pre-war levels, reflecting an uneasy balance between persistent geopolitical risk and the market's ability to price in a prolonged stalemate.`,
+  gold_high: ({ pct }) => `Gold is expected ${pct} above pre-war levels, driven by safe-haven demand, central bank accumulation, and hedging against tail-risk scenarios including nuclear escalation.`,
+  gold_low: ({ pct }) => `Gold is expected ${pct} from pre-war levels, moderating from peak levels as de-escalation reduces the systemic risk premium that drove the recent rally.`,
 };

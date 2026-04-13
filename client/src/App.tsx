@@ -43,6 +43,7 @@ import {
   computeAllEndogenous,
   getReactionFunction,
 } from "./lib/endogenous";
+import { fetchLiveQuotes, type LiveQuotes } from "./lib/marketData";
 
 type TabId = 'decisions' | 'results' | 'about';
 
@@ -127,9 +128,11 @@ export default function App() {
   const [portfolioWeights, setPortfolioWeights] = useState<Record<PortfolioAssetId, number>>(
     () => ({ ...DEFAULT_PORTFOLIO_WEIGHTS })
   );
+  const [liveQuotes, setLiveQuotes] = useState<LiveQuotes | null>(null);
 
   useEffect(() => {
     fetchPolymarketData().then(setPolymarketData).catch(() => {});
+    fetchLiveQuotes().then(setLiveQuotes).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -501,6 +504,7 @@ export default function App() {
               currentProbs={currentProbs}
               weightedMarket={weightedMarket}
               portfolioWeights={portfolioWeights}
+              liveQuotes={liveQuotes}
             />
           </div>
 

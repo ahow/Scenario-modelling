@@ -12,11 +12,11 @@ import {
   ASSETS,
   ASSET_MAP,
   SCENARIO_IDS,
-  SCENARIO_MAP,
   MARKET_IMPACT,
   type AssetId,
   type ScenarioId,
 } from '../lib/config';
+import type { LiveQuotes } from '../lib/marketData';
 
 export type PortfolioAssetId = 'dm_eq' | 'em_eq' | 'credit' | 'govbond' | 'brent' | 'gold' | 'cash';
 
@@ -55,6 +55,8 @@ const PORTFOLIO_COLOR = '#0074B7';
 const KDE_POINTS = 200;
 
 type TabSelection = AssetId | 'portfolio';
+
+const fmtPct = (v: number) => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
 
 function gaussianPdf(x: number): number {
   return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
@@ -99,9 +101,7 @@ function buildKdeCurve(
 }
 
 /**
- * Convert absolute-price asset outcomes to % returns for portfolio blending.
- * Brent & Gold are absolute prices → convert to % change from current.
- * Gov bonds, credit, equities, USD are already in % return.
+ * All assets are now in % from baseline — portfolio blending is simple addition.
  * Cash is always 0%.
  */
 function getAssetReturnForScenario(
@@ -110,28 +110,13 @@ function getAssetReturnForScenario(
 ): { lo: number; mid: number; hi: number } {
   if (portfolioAssetId === 'cash') return { lo: 0, mid: 0, hi: 0 };
   const impact = MARKET_IMPACT[scenarioId][portfolioAssetId as AssetId];
-  const asset = ASSET_MAP[portfolioAssetId as AssetId];
-  // Brent & Gold: absolute price → convert to % return
-  if (asset.currentValue !== 0) {
-    return {
-      lo: ((impact.lo - asset.currentValue) / asset.currentValue) * 100,
-      mid: ((impact.mid - asset.currentValue) / asset.currentValue) * 100,
-      hi: ((impact.hi - asset.currentValue) / asset.currentValue) * 100,
-    };
-  }
-  // Already in % return
   return { lo: impact.lo, mid: impact.mid, hi: impact.hi };
 }
 
-/**
- * Build a KDE curve for the blended portfolio return (in % terms),
- * then rebase to 100 so the x-axis shows portfolio index values.
- */
 function buildPortfolioKdeCurve(
   probs: Record<ScenarioId, number>,
   weights: Record<PortfolioAssetId, number>,
 ): { x: number; density: number }[] {
-  // For each scenario, compute weighted portfolio % return
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
   if (totalWeight === 0) return [];
 
@@ -147,7 +132,6 @@ function buildPortfolioKdeCurve(
     return { sid, lo, mid, hi };
   });
 
-  // Build kernels in rebased-to-100 space
   const kernels = scenarioReturns.map(sr => {
     const muRebased = 100 + sr.mid;
     const loRebased = 100 + sr.lo;
@@ -182,7 +166,6 @@ function buildPortfolioKdeCurve(
   return points;
 }
 
-/** Compute expected portfolio return (rebased to 100) from weighted market */
 function computePortfolioExpected(
   probs: Record<ScenarioId, number>,
   weights: Record<PortfolioAssetId, number>,
@@ -213,17 +196,19 @@ interface MarketImpactChartProps {
   currentProbs: Record<ScenarioId, number>;
   weightedMarket: Record<AssetId, { lo: number; mid: number; hi: number }>;
   portfolioWeights?: Record<PortfolioAssetId, number>;
+  liveQuotes?: LiveQuotes | null;
 }
 
 export const MarketImpactChart = memo(function MarketImpactChart({
   currentProbs,
   weightedMarket,
   portfolioWeights,
+  liveQuotes,
 }: MarketImpactChartProps) {
   const [selectedTab, setSelectedTab] = useState<TabSelection>('brent');
 
   const isPortfolio = selectedTab === 'portfolio';
-  const selectedAsset = isPortfolio ? 'brent' : selectedTab as AssetId; // fallback for typing
+  const selectedAsset = isPortfolio ? 'brent' : selectedTab as AssetId;
   const asset = isPortfolio ? null : ASSET_MAP[selectedAsset];
   const color = isPortfolio ? PORTFOLIO_COLOR : ASSET_COLORS[selectedAsset];
   const wm = isPortfolio ? null : weightedMarket[selectedAsset];
@@ -246,22 +231,18 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     ? (portfolioExpected?.mid ?? 100)
     : (wm?.mid ?? 0);
 
-  const currentValue = isPortfolio ? 100 : (asset?.currentValue ?? 0);
-  const hasCurrentValue = isPortfolio ? true : currentValue !== 0;
+  // Current market level as % from baseline (live data)
+  const currentPct = isPortfolio ? null : (liveQuotes?.pctFromBaseline[selectedAsset] ?? null);
+  const hasCurrentLine = isPortfolio ? true : currentPct !== null;
 
   const formatTick = (v: number) => {
     if (isPortfolio) return v.toFixed(0);
-    return asset!.formatShort(v);
-  };
-
-  const formatValue = (v: number) => {
-    if (isPortfolio) return v.toFixed(1);
-    return asset!.format(v);
+    return fmtPct(v);
   };
 
   const formatShortValue = (v: number) => {
     if (isPortfolio) return v.toFixed(1);
-    return asset!.formatShort(v);
+    return fmtPct(v);
   };
 
   const displayName = isPortfolio ? 'Portfolio' : asset!.name;
@@ -272,7 +253,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
     return (
       <div className="bg-background border border-border rounded-lg shadow-lg p-2.5">
         <div className="text-[12px] font-semibold tabular-nums">
-          {isPortfolio ? pt.x.toFixed(1) : asset!.format(pt.x)}
+          {isPortfolio ? pt.x.toFixed(1) : fmtPct(pt.x)}
         </div>
         <div className="text-[10px] text-muted-foreground">
           Relative density: {(pt.density * 100).toFixed(1)}
@@ -283,6 +264,8 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
   const expectedLo = isPortfolio ? (portfolioExpected?.lo ?? 100) : (wm?.lo ?? 0);
   const expectedHi = isPortfolio ? (portfolioExpected?.hi ?? 100) : (wm?.hi ?? 0);
+
+  const currentLineValue = isPortfolio ? 100 : (currentPct ?? 0);
 
   return (
     <div data-testid="market-impact-chart">
@@ -319,9 +302,9 @@ export const MarketImpactChart = memo(function MarketImpactChart({
       <div className="flex items-baseline justify-between mb-2">
         <h4 className="text-[13px] font-semibold">{displayName}</h4>
         <div className="flex items-baseline gap-3">
-          {hasCurrentValue && (
+          {hasCurrentLine && (
             <span className="text-[11px] text-muted-foreground">
-              {isPortfolio ? 'Base' : 'Current'}: <span className="font-semibold tabular-nums text-foreground">{isPortfolio ? '100' : asset!.format(currentValue)}</span>
+              {isPortfolio ? 'Base' : 'Current'}: <span className="font-semibold tabular-nums text-foreground">{isPortfolio ? '100' : fmtPct(currentPct!)}</span>
             </span>
           )}
           <span className="text-[11px] text-muted-foreground">
@@ -356,14 +339,14 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             <Tooltip content={<CustomTooltip />} />
 
             {/* Current / Base value line */}
-            {hasCurrentValue && (
+            {hasCurrentLine && (
               <ReferenceLine
-                x={currentValue}
+                x={currentLineValue}
                 stroke="hsl(var(--muted-foreground))"
                 strokeWidth={1.5}
                 strokeDasharray="2 2"
                 label={{
-                  value: isPortfolio ? 'Base (100)' : 'Current',
+                  value: isPortfolio ? 'Base (100)' : `Current: ${fmtPct(currentPct!)}`,
                   position: 'insideTopRight',
                   fontSize: 10,
                   fill: 'hsl(var(--muted-foreground))',
@@ -372,7 +355,7 @@ export const MarketImpactChart = memo(function MarketImpactChart({
               />
             )}
 
-            {/* Expected value line — thick, clearly labelled */}
+            {/* Expected value line */}
             <ReferenceLine
               x={expectedValue}
               stroke="hsl(var(--foreground))"
@@ -387,7 +370,6 @@ export const MarketImpactChart = memo(function MarketImpactChart({
               }}
             />
 
-            {/* The distribution curve with shading */}
             <Area
               type="monotone"
               dataKey="density"
@@ -400,16 +382,16 @@ export const MarketImpactChart = memo(function MarketImpactChart({
         </ResponsiveContainer>
       </div>
 
-      {/* Legend with clear labels */}
+      {/* Legend */}
       <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span className="w-5 h-[2.5px] bg-foreground rounded-full inline-block" style={{ backgroundImage: 'repeating-linear-gradient(90deg, hsl(var(--foreground)) 0, hsl(var(--foreground)) 4px, transparent 4px, transparent 7px)' }} />
           Expected value
         </div>
-        {hasCurrentValue && (
+        {hasCurrentLine && (
           <div className="flex items-center gap-1.5">
             <span className="w-5 h-px bg-muted-foreground rounded-full inline-block" style={{ backgroundImage: 'repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0, hsl(var(--muted-foreground)) 2px, transparent 2px, transparent 4px)' }} />
-            {isPortfolio ? 'Base level (100)' : 'Current level'}
+            {isPortfolio ? 'Base level (100)' : 'Current level (live)'}
           </div>
         )}
         <div className="flex items-center gap-1.5">
@@ -420,13 +402,19 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
       <p className="text-[10px] text-muted-foreground/60 leading-relaxed mt-2">
         {isPortfolio
-          ? 'The curve shows the probability-weighted distribution of portfolio outcomes, rebased to 100. Each scenario contributes a blended return computed from your allocation weights across all asset classes. Oil and Gold are converted to percentage returns from current levels; Cash contributes 0%. All values are editorial estimates.'
-          : <>The curve shows the probability-weighted distribution of outcomes. Each scenario
-            contributes a Gaussian kernel centred on its expected value, weighted by its probability.
-            {hasCurrentValue ? ' The thin dashed line marks the current market level.' : ''}
-            {' '}The thick dashed line is the overall expected value. All values are editorial estimates.</>
+          ? 'The curve shows the probability-weighted distribution of portfolio outcomes, rebased to 100. Each scenario contributes a blended return computed from your allocation weights across all asset classes. Cash contributes 0%. All values are % change from pre-war baseline (3-month avg, Nov 2025 – Feb 2026). Editorial estimates.'
+          : <>All values are % change from the pre-war baseline (3-month average, Nov 2025 – Feb 2026) using ETF proxies ({asset!.ticker}).
+            The "Current" line shows today's live market level relative to the same baseline.
+            The distribution shows the probability-weighted range of scenario outcomes. Editorial estimates.</>
         }
       </p>
+
+      {/* Data source badge */}
+      {liveQuotes && !isPortfolio && (
+        <div className="mt-1.5 text-[9px] text-muted-foreground/40">
+          Market data: {liveQuotes.source === 'live' ? 'Live' : 'Fallback'} via FMP ({asset!.ticker}) · {new Date(liveQuotes.timestamp).toLocaleTimeString()}
+        </div>
+      )}
     </div>
   );
 });
