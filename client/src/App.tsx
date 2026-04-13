@@ -311,11 +311,8 @@ export default function App() {
           onScenarioClick={setDrawerScenario}
         />
 
-        {/* Historical timeseries — scenario probabilities and market outcomes side-by-side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <HistoryChart />
-          <HistoryMarketChart />
-        </div>
+        {/* Historical scenario probabilities timeline */}
+        <HistoryChart />
       </div>
 
       {/* Main content: narrative + decisions */}
@@ -340,6 +337,11 @@ export default function App() {
             currentProbs={currentProbs}
             weightedMarket={weightedMarket}
           />
+        </div>
+
+        {/* Historical market outcomes timeline */}
+        <div className="mb-4">
+          <HistoryMarketChart />
         </div>
 
         {/* Decisions */}
