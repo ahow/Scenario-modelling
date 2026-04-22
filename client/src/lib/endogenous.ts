@@ -109,24 +109,74 @@ export function computeEndogenousPosition(
 
 /**
  * Compute all endogenous positions given exogenous states.
- * Runs two passes to handle dependencies (e.g., market depends on houthi).
+ *
+ * Uses Gauss–Seidel fixed-point iteration so that reactive signals which
+ * depend on other reactive signals (e.g., market ← houthi) converge to a
+ * mutually consistent equilibrium rather than being resolved by a hard-coded
+ * ordering. Converges in 2–5 iterations for this graph; hard cap at 20.
+ *
+ * Returns both the fixed-point values and the number of iterations required
+ * (useful for transparency in the UI / documentation).
  */
 export function computeAllEndogenous(
   exogenousStates: AllSignalStates,
 ): Partial<Record<SignalId, number>> {
-  const result: Record<string, number> = {};
+  const { values } = computeAllEndogenousWithMeta(exogenousStates);
+  return values;
+}
 
-  // First pass: compute independent endogenous signals (china, houthi)
+export interface EndogenousResolveMeta {
+  values: Partial<Record<SignalId, number>>;
+  iterations: number;
+  converged: boolean;
+  maxDelta: number;
+}
+
+export function computeAllEndogenousWithMeta(
+  exogenousStates: AllSignalStates,
+  options: { maxIterations?: number; tolerance?: number } = {},
+): EndogenousResolveMeta {
+  const maxIterations = options.maxIterations ?? 20;
+  const tolerance = options.tolerance ?? 0.5; // slider units (0–100 scale)
+
+  // Seed endogenous values at a neutral 50 so the first pass has something to read.
+  const state: Record<string, number> = { ...exogenousStates };
   for (const signalId of ENDOGENOUS_SIGNALS) {
-    if (signalId === 'market') continue; // depends on houthi
-    result[signalId] = computeEndogenousPosition(signalId, exogenousStates);
+    if (state[signalId] === undefined) state[signalId] = 50;
   }
 
-  // Second pass: market depends on houthi's computed position
-  const statesWithEndogenous = { ...exogenousStates, ...result };
-  result['market'] = computeEndogenousPosition('market', statesWithEndogenous as AllSignalStates);
+  let iterations = 0;
+  let maxDelta = Infinity;
+  let converged = false;
 
-  return result as Partial<Record<SignalId, number>>;
+  for (let i = 0; i < maxIterations; i++) {
+    iterations = i + 1;
+    maxDelta = 0;
+    // Gauss–Seidel: each endogenous signal reads the *latest* values of its
+    // drivers, including other endogenous signals updated earlier in this pass.
+    for (const signalId of ENDOGENOUS_SIGNALS) {
+      const next = computeEndogenousPosition(signalId, state as AllSignalStates);
+      const prev = state[signalId];
+      const delta = Math.abs(next - prev);
+      if (delta > maxDelta) maxDelta = delta;
+      state[signalId] = next;
+    }
+    if (maxDelta <= tolerance) {
+      converged = true;
+      break;
+    }
+  }
+
+  const values: Record<string, number> = {};
+  for (const signalId of ENDOGENOUS_SIGNALS) {
+    values[signalId] = state[signalId];
+  }
+  return {
+    values: values as Partial<Record<SignalId, number>>,
+    iterations,
+    converged,
+    maxDelta,
+  };
 }
 
 export function isEndogenous(signalId: SignalId): boolean {

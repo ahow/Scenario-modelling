@@ -183,3 +183,33 @@ export async function fetchPolymarketData(): Promise<PolymarketMapping[]> {
 export function getPolymarketAnchor(mappings: PolymarketMapping[], signalId: SignalId): PolymarketMapping | undefined {
   return mappings.find(m => m.signalId === signalId);
 }
+
+/**
+ * Bayesian-style blend of user-set slider positions with market-implied
+ * positions from Polymarket. `marketTrust` is the weight given to market
+ * signals in [0, 1]; the user's own view gets (1 − marketTrust).
+ *
+ * Only applied to signals that have a Polymarket mapping — others pass through.
+ * Returns both the blended states and the set of signals that were actually
+ * affected, so the UI can indicate where the blend bites.
+ */
+export function blendStatesWithMarket(
+  userStates: Record<SignalId, number>,
+  mappings: PolymarketMapping[],
+  marketTrust: number,
+): { blended: Record<SignalId, number>; affectedSignals: SignalId[] } {
+  const trust = Math.max(0, Math.min(1, marketTrust));
+  const blended: Record<string, number> = { ...userStates };
+  const affected: SignalId[] = [];
+  if (trust <= 0) {
+    return { blended: blended as Record<SignalId, number>, affectedSignals: [] };
+  }
+  for (const m of mappings) {
+    const userPos = userStates[m.signalId];
+    if (userPos === undefined) continue;
+    const mix = Math.round((1 - trust) * userPos + trust * m.impliedPosition);
+    blended[m.signalId] = mix;
+    if (Math.abs(mix - userPos) > 0.5) affected.push(m.signalId);
+  }
+  return { blended: blended as Record<SignalId, number>, affectedSignals: affected };
+}

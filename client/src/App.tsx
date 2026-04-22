@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, RotateCcw, Cpu } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Moon, Sun, RotateCcw, Cpu, TrendingUp } from "lucide-react";
 import { SchrodersLogo } from "./components/SchrodersLogo";
 import { MarketStrip } from "./components/MarketStrip";
 import { DecisionCard, type AnchorMarker } from "./components/DecisionCard";
@@ -37,6 +38,7 @@ import {
 import {
   fetchPolymarketData,
   getPolymarketAnchor,
+  blendStatesWithMarket,
   type PolymarketMapping,
 } from "./lib/polymarket";
 import {
@@ -127,6 +129,9 @@ export default function App() {
   const [autoCompute, setAutoCompute] = useState(true);
   const [lockedSignals, setLockedSignals] = useState<Set<SignalId>>(new Set());
   const [polymarketData, setPolymarketData] = useState<PolymarketMapping[]>([]);
+  // Market trust: weight given to Polymarket-implied positions when blending
+  // with the user's slider positions. 0 = ignore markets, 1 = fully defer.
+  const [marketTrust, setMarketTrust] = useState(0);
   const [portfolioWeights, setPortfolioWeights] = useState<Record<PortfolioAssetId, number>>(
     () => ({ ...DEFAULT_PORTFOLIO_WEIGHTS })
   );
@@ -137,9 +142,14 @@ export default function App() {
     fetchLiveQuotes().then(setLiveQuotes).catch(() => {});
   }, []);
 
+  // Resolve reactive decisions from the *effective* (market-blended) exogenous
+  // view, then write results back into `states` (which feeds the next blend).
+  // Fixed-point iteration inside computeAllEndogenous ensures mutual consistency.
   useEffect(() => {
     if (!autoCompute) return;
-    const endogenousPositions = computeAllEndogenous(states);
+    // Build blend input without the current reactive values so they're re-derived.
+    const blendInput = blendStatesWithMarket(states, polymarketData, marketTrust / 100).blended;
+    const endogenousPositions = computeAllEndogenous(blendInput);
     let hasChanges = false;
     const newStates = { ...states };
     for (const [signalId, position] of Object.entries(endogenousPositions)) {
@@ -153,6 +163,8 @@ export default function App() {
   }, [
     autoCompute,
     lockedSignals,
+    marketTrust,
+    polymarketData,
     ...SIGNALS.filter(s => !ENDOGENOUS_SIGNALS.includes(s.id)).map(s => states[s.id]),
   ]);
 
@@ -161,9 +173,17 @@ export default function App() {
     () => computeProbsFromSliders(getDefaultStates(), baseProbs),
     [baseProbs]
   );
+
+  // Bayesian blend: effective states = user view + market signal weighted by trust.
+  // All downstream calculations (probabilities, outcomes, narrative) use these.
+  const { blended: effectiveStates, affectedSignals: marketAffectedSignals } = useMemo(
+    () => blendStatesWithMarket(states, polymarketData, marketTrust / 100),
+    [states, polymarketData, marketTrust]
+  );
+
   const currentProbs = useMemo(
-    () => computeProbsFromSliders(states, baseProbs),
-    [states, baseProbs]
+    () => computeProbsFromSliders(effectiveStates, baseProbs),
+    [effectiveStates, baseProbs]
   );
   const weightedMarket = useMemo(
     () => computeWeightedMarket(currentProbs),
@@ -180,8 +200,8 @@ export default function App() {
   }, [liveQuotes]);
 
   const narrative = useMemo(
-    () => generateNarrative(currentProbs, weightedMarket, states, currentFromBaseline),
-    [currentProbs, weightedMarket, states, currentFromBaseline]
+    () => generateNarrative(currentProbs, weightedMarket, effectiveStates, currentFromBaseline),
+    [currentProbs, weightedMarket, effectiveStates, currentFromBaseline]
   );
 
   const briefing = useMemo(() => getCurrentBriefing(), []);
@@ -385,6 +405,50 @@ export default function App() {
                 {movedCount}/{SIGNALS.length} set
               </span>
             </div>
+          </div>
+
+          {/* Market-signal trust slider (Bayesian blend with Polymarket) */}
+          <div className="mb-4 p-3 rounded-md border border-border bg-card">
+            <div className="flex items-center justify-between gap-3 mb-1.5">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5 text-[var(--sch-blue)]" />
+                <span className="text-[12px] font-semibold text-foreground">
+                  Trust in market signals
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  (Polymarket · {polymarketData.length} mapped)
+                </span>
+              </div>
+              <div className="text-[11px] tabular-nums">
+                <span className="text-muted-foreground">Your view</span>
+                <span className="mx-1 text-foreground font-semibold">{100 - marketTrust}%</span>
+                <span className="text-muted-foreground mx-1">·</span>
+                <span className="text-muted-foreground">Market</span>
+                <span className="ml-1 text-[var(--sch-blue)] font-semibold">{marketTrust}%</span>
+              </div>
+            </div>
+            <Slider
+              value={[marketTrust]}
+              onValueChange={(v) => setMarketTrust(v[0])}
+              min={0}
+              max={100}
+              step={5}
+              className="my-2"
+              disabled={polymarketData.length === 0}
+            />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Blends your slider positions with Polymarket-implied positions where available. At
+              0% the model uses only your view; at 100% it defers fully to live prediction-market prices.
+              Scenarios, outcomes and the narrative all re-compute from the blended view.
+              {marketAffectedSignals.length > 0 && (
+                <span className="ml-1 text-foreground">
+                  Currently shifting: {marketAffectedSignals.map(id => SIGNAL_MAP[id]?.label).filter(Boolean).join(', ')}.
+                </span>
+              )}
+              {polymarketData.length === 0 && (
+                <span className="ml-1 italic">No Polymarket data loaded yet — slider is inactive.</span>
+              )}
+            </p>
           </div>
 
           {/* Exogenous decisions */}
@@ -645,6 +709,51 @@ export default function App() {
                   Quantitative anchors come from Polymarket prediction markets (where available)
                   or news-derived briefing estimates. The news briefing panel provides the latest
                   intelligence assessment with source links.
+                </p>
+              </div>
+            </section>
+
+            {/* Feedback & systems features */}
+            <section>
+              <h2 className="text-lg font-heading font-bold text-foreground mb-2 sch-accent-bar">
+                Feedback between variables
+              </h2>
+              <div className="space-y-2 text-[14px] leading-relaxed text-foreground/90">
+                <p>
+                  The model is primarily a structured Bayesian / decision-tree computation rather
+                  than a full systems-dynamics model (there are no closed time-loops, stocks or flows).
+                  It does, however, contain two explicit feedback mechanisms designed to add systems-like
+                  behaviour without adding user-facing complexity:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                  <div className="p-3 bg-muted/30 border border-border/30 rounded-sm">
+                    <div className="text-[13px] font-semibold mb-1">1. Fixed-point resolution of reactive decisions</div>
+                    <div className="text-[12px] text-muted-foreground leading-relaxed">
+                      Reactive signals — China, Houthis, insurance premiums — can depend on one
+                      another (markets react to Houthi posture; Houthi posture reacts to Iran regime stability
+                      and Trump's war posture). The engine uses Gauss–Seidel iteration to solve these
+                      reaction functions simultaneously rather than in a fixed order, so reactive variables
+                      reach a mutually consistent equilibrium each time inputs change. Typically converges
+                      in 2–5 iterations; hard cap of 20.
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted/30 border border-border/30 rounded-sm">
+                    <div className="text-[13px] font-semibold mb-1">2. Bayesian blend with market signals</div>
+                    <div className="text-[12px] text-muted-foreground leading-relaxed">
+                      A "Trust in market signals" slider on the Decisions tab blends the user's slider
+                      positions with Polymarket-implied positions for any mapped decision. At 0%, the
+                      model uses only the user view; at 100% it defers fully to prediction-market prices.
+                      Probabilities, market outcomes, the narrative and even the reactive-decision loop
+                      re-compute from the blended view, providing a legitimate feedback channel from
+                      live market pricing back into decision probabilities.
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-2 text-[12px] text-muted-foreground italic">
+                  Not currently modelled: closed-loop feedback from market outcomes back into decisions
+                  (e.g., high oil prices increasing the implied probability of de-escalation), explicit
+                  asset correlations, and any time dimension. All cross-asset co-movement is baked into
+                  scenario definitions rather than being derived structurally.
                 </p>
               </div>
             </section>
