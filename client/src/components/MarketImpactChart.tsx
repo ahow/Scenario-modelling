@@ -205,7 +205,10 @@ export const MarketImpactChart = memo(function MarketImpactChart({
   portfolioWeights,
   liveQuotes,
 }: MarketImpactChartProps) {
-  const [selectedTab, setSelectedTab] = useState<TabSelection>('brent');
+  // Default to Portfolio tab when portfolio weights are available; fall back to brent otherwise.
+  const [selectedTab, setSelectedTab] = useState<TabSelection>(
+    portfolioWeights ? 'portfolio' : 'brent'
+  );
 
   const isPortfolio = selectedTab === 'portfolio';
   const selectedAsset = isPortfolio ? 'brent' : selectedTab as AssetId;
@@ -297,8 +300,20 @@ export const MarketImpactChart = memo(function MarketImpactChart({
 
   return (
     <div data-testid="market-impact-chart">
-      {/* Asset selector tabs */}
+      {/* Asset selector tabs — Portfolio first, then individual assets */}
       <div className="flex gap-1 flex-wrap mb-3">
+        {portfolioWeights && (
+          <button
+            onClick={() => setSelectedTab('portfolio')}
+            className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-colors ${
+              selectedTab === 'portfolio'
+                ? 'bg-[var(--sch-blue)] text-white'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            Portfolio
+          </button>
+        )}
         {ASSETS.map(a => (
           <button
             key={a.id}
@@ -312,18 +327,6 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             {a.name}
           </button>
         ))}
-        {portfolioWeights && (
-          <button
-            onClick={() => setSelectedTab('portfolio')}
-            className={`px-2.5 py-1 rounded-[10px] text-[11px] font-medium transition-colors ${
-              selectedTab === 'portfolio'
-                ? 'bg-[var(--sch-blue)] text-white'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            Portfolio
-          </button>
-        )}
       </div>
 
       {/* Expected value summary */}
@@ -361,6 +364,21 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             />
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} />
+
+            {/* Zero baseline (pre-war level) */}
+            <ReferenceLine
+              x={0}
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={1}
+              strokeDasharray="2 3"
+              label={{
+                value: 'Baseline (0%)',
+                position: 'insideBottomLeft',
+                fontSize: 10,
+                fill: 'hsl(var(--muted-foreground))',
+                fontWeight: 500,
+              }}
+            />
 
             {/* Current / Base value line */}
             {hasCurrentLine && (
@@ -418,6 +436,10 @@ export const MarketImpactChart = memo(function MarketImpactChart({
             Current level (live)
           </div>
         )}
+        <div className="flex items-center gap-1.5">
+          <span className="w-5 h-[1px] inline-block" style={{ backgroundImage: 'repeating-linear-gradient(90deg, hsl(var(--muted-foreground)) 0, hsl(var(--muted-foreground)) 2px, transparent 2px, transparent 5px)' }} />
+          Pre-war baseline (0%)
+        </div>
         <div className="flex items-center gap-1.5">
           <span className="w-4 h-2 rounded-sm inline-block" style={{ backgroundColor: color, opacity: 0.3 }} />
           Probability distribution
